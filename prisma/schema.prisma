@@ -1,0 +1,196 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Profile {
+  id            String    @id
+  email         String    @unique
+  name          String?
+  phone         String?
+  address       String?
+  shipping_address Json?
+  role          String?   @default("user")
+  created_at    DateTime  @default(now())
+  updated_at    DateTime? @updatedAt
+
+  @@map("profiles")
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  name        String
+  description String?  @db.Text
+  price       Float
+  images      String[] @default([])
+  category_name String
+  sizes       String[] @default([])
+  in_stock    Boolean  @default(true)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+  
+  // Add relation fields
+  school_id   String?
+  school      School?     @relation(fields: [school_id], references: [id])
+  category_id String?
+  category    Category?   @relation(fields: [category_id], references: [id])
+  productSizes ProductSize[]
+  wishlistItems WishlistItem[]
+
+  @@map("products")
+}
+
+model CartItem {
+  id           String   @id @default(uuid())
+  user_id      String
+  product_id   String
+  product_name String
+  price        Float
+  quantity     Int      @default(1)
+  size         String
+  image        String?
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  @@unique([user_id, product_id, size])
+  @@map("cart_items")
+}
+
+model Order {
+  id              String   @id @default(uuid())
+  user_id         String
+  user            User     @relation(fields: [user_id], references: [id])
+  shipping_address Json
+  status          String
+  total_amount     Float
+  payment_intent_id String?
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id           String   @id @default(uuid())
+  order_id     String
+  product_id   String
+  product_name String
+  price        Float
+  quantity     Int
+  size         String
+  created_at   DateTime @default(now())
+
+  @@map("order_items")
+}
+
+model School {
+  id                  String    @id @default(uuid())
+  name                String
+  address             String?
+  contact_number      String?
+  uniform_requirements String?
+  logo_url            String?
+  products            Product[]
+  created_at          DateTime  @default(now())
+  updated_at          DateTime  @updatedAt
+
+  @@map("schools")
+}
+
+// Example models for an ecommerce site
+model User {
+  id         String    @id @default(uuid())
+  email      String    @unique
+  name       String?
+  auth_type  String    @default("email") // "email", "google", etc.
+  role       String    @default("user") // "user", "admin", "manager", "warehouse"
+  address    Address[]
+  orders     Order[]
+  wishlist   Wishlist?
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+}
+
+model Address {
+  id          String   @id @default(uuid())
+  user_id     String
+  user        User     @relation(fields: [user_id], references: [id])
+  address_line1 String
+  address_line2 String?
+  city        String
+  state       String
+  postal_code String
+  country     String
+  is_default  Boolean  @default(false)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+}
+
+
+model Category {
+  id         String    @id @default(uuid())
+  name       String
+  products   Product[]
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+}
+
+model ProductSize {
+  id          String   @id @default(uuid())
+  product_id  String
+  product     Product  @relation(fields: [product_id], references: [id])
+  size        String   // XS, S, M, L, XL, etc.
+  age_range   String?  // e.g. "6-7 years"
+  stock       Int      @default(0)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+}
+
+model Wishlist {
+  id          String          @id @default(uuid())
+  user_id     String          @unique
+  user        User            @relation(fields: [user_id], references: [id])
+  items       WishlistItem[]
+  created_at  DateTime        @default(now())
+  updated_at  DateTime        @updatedAt
+}
+
+model WishlistItem {
+  id          String   @id @default(uuid())
+  wishlist_id String
+  wishlist    Wishlist @relation(fields: [wishlist_id], references: [id])
+  product_id  String
+  product     Product  @relation(fields: [product_id], references: [id])
+  created_at  DateTime @default(now())
+}
+
+model Coupon {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  discount    Float
+  is_percent  Boolean  @default(true)
+  min_amount  Float?
+  max_uses    Int?
+  uses        Int      @default(0)
+  valid_from  DateTime @default(now())
+  valid_until DateTime?
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+}
+
+model OrderStatusLog {
+  id          String   @id @default(uuid())
+  order_id    String
+  status      String
+  notes       String?
+  updated_by  String
+  created_at  DateTime @default(now())
+}
