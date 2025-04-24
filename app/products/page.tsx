@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import ProductCard from '../components/ProductCard';
+import ProductQuickView from '../components/ProductQuickView';
 
 interface Product {
   id: string;
@@ -10,7 +11,7 @@ interface Product {
   price: number;
   images: string[];
   category_name: string;
-  sizes: string[];
+  sizes?: string[];
   in_stock: boolean;
 }
 
@@ -21,6 +22,8 @@ export default function ProductsPage() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [sortOption, setSortOption] = useState<string>('default');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
+  const [quickViewOpen, setQuickViewOpen] = useState(false);
 
   useEffect(() => {
     async function fetchProducts() {
@@ -95,6 +98,11 @@ export default function ProductsPage() {
 
   const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSortOption(e.target.value);
+  };
+
+  const handleQuickView = (product: Product) => {
+    setQuickViewProduct(product);
+    setQuickViewOpen(true);
   };
 
   if (loading) {
@@ -172,11 +180,31 @@ export default function ProductsPage() {
               <p className="text-gray-500">No products found matching your criteria.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {products.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {products.map((product) => (
+                  <div key={product.id} className="relative group">
+                    <ProductCard product={product} />
+                    <button
+                      onClick={() => handleQuickView(product)}
+                      className="absolute inset-0 bg-white bg-opacity-0 group-hover:bg-opacity-20 flex items-center justify-center opacity-0 group-hover:opacity-50 transition-all duration-300"
+                    >
+                      <span className="bg-white opacity-100 px-4 py-2 rounded-md shadow-md text-sm font-medium">
+                        Quick View
+                      </span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+              
+              {quickViewProduct && (
+                <ProductQuickView 
+                  product={quickViewProduct} 
+                  open={quickViewOpen} 
+                  onOpenChange={setQuickViewOpen} 
+                />
+              )}
+            </>
           )}
         </div>
       </div>

@@ -45,34 +45,35 @@ export default function CheckoutPage() {
         if (session) {
           setIsAuthenticated(true);
           
-          // Get user profile for prefilling
+          // Get user data for prefilling
           try {
-            const { data: profile, error } = await supabase
-              .from('profiles')
-              .select('*')
+            const { data: userData, error } = await supabase
+              .from('users')
+              .select('*, default_address:default_address_id(id, address_line1, address_line2, city, state, postal_code, country)')
               .eq('id', session.user.id)
               .single();
             
             if (error) {
-              console.error("Error fetching profile:", error);
+              console.error("Error fetching user data:", error);
               return;
             }
             
-            if (profile) {
+            if (userData) {
               setFormData({
-                name: profile.name || '',
-                email: profile.email || session.user.email || '',
-                phone: profile.phone || '',
-                address_line1: profile.address?.split(',')[0] || '',
-                address_line2: '',
-                city: profile.address?.split(',')[1]?.trim() || '',
-                state: profile.address?.split(',')[2]?.trim() || '',
-                postal_code: profile.address?.split(',')[3]?.trim() || '',
-                country: "India",
+                name: userData.name || '',
+                email: userData.email || session.user.email || '',
+                phone: userData.phone || '',
+                // Use the default address if it exists
+                address_line1: userData.default_address?.address_line1 || '',
+                address_line2: userData.default_address?.address_line2 || '',
+                city: userData.default_address?.city || '',
+                state: userData.default_address?.state || '',
+                postal_code: userData.default_address?.postal_code || '',
+                country: userData.default_address?.country || "India",
               });
             }
           } catch (err) {
-            console.error("Error fetching profile:", err);
+            console.error("Error fetching user data:", err);
           }
         }
       } catch (err) {
@@ -161,12 +162,13 @@ export default function CheckoutPage() {
     }
 
     try {
+      // Create a guest user if not authenticated
       let userId = "";
       
       if (!isAuthenticated) {
         // Try to find if email already exists
         const { data: existingUsers, error: userError } = await supabase
-          .from('profiles')
+          .from('users')
           .select('id')
           .eq('email', formData.email);
           
@@ -182,46 +184,63 @@ export default function CheckoutPage() {
           return;
         }
         
-        // Create a new profile for the guest using server-side API
+        // Create a new user record for the guest
         const guestId = crypto.randomUUID();
-        const profileResponse = await fetch('/api/profile/create', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
+        const { data, error } = await supabase
+          .from('users')
+          .insert({
             id: guestId,
             email: formData.email,
-          }),
-        });
-
-        if (!profileResponse.ok) {
-          const errorData = await profileResponse.json();
-          throw new Error(`Error creating guest profile: ${errorData.error}`);
-        }
-
-        // Now update the profile with additional info
-        const updateResponse = await fetch('/api/profile/update', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            id: guestId, // Include the ID for guest profiles
             name: formData.name,
             phone: formData.phone,
-            address: `${formData.address_line1}, ${formData.city}, ${formData.state}, ${formData.postal_code}`,
-            email: formData.email,
             role: 'guest'
-          }),
-        });
-
-        if (!updateResponse.ok) {
-          const errorData = await updateResponse.json();
-          throw new Error(`Error updating guest profile: ${errorData.error}`);
+          })
+          .select()
+          .single();
+          
+        if (error) {
+          throw new Error(`Error creating guest user record: ${error.message}`);
         }
-
-        userId = guestId;
+        
+        userId = data.id;
+        
+        // Create address for guest user with explicit ID
+        const addressId = crypto.randomUUID();
+        const currentDate = new Date();
+        const { data: addressData, error: addressError } = await supabase
+          .from('addresses')
+          .insert({
+            id: addressId,
+            user_id: userId,
+            address_line1: formData.address_line1,
+            address_line2: formData.address_line2,
+            city: formData.city,
+            state: formData.state,
+            postal_code: formData.postal_code,
+            country: formData.country,
+            is_default: true,
+            created_at: currentDate,
+            updated_at: currentDate
+          })
+          .select()
+          .single();
+          
+        if (addressError) {
+          throw new Error(`Error creating address: ${addressError.message}`);
+        }
+        
+        // Set as default address
+        const { error: defaultError } = await supabase
+          .from('users')
+          .update({
+            default_address_id: addressData.id,
+            updated_at: new Date()
+          })
+          .eq('id', userId);
+          
+        if (defaultError) {
+          throw new Error(`Error setting default address: ${defaultError.message}`);
+        }
       } else {
         // Get current user ID
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -232,30 +251,97 @@ export default function CheckoutPage() {
         
         userId = session.user.id;
         
-        // Update profile with shipping info using the server-side API
-        const profileResponse = await fetch('/api/profile/update', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
+        // Check if user has a default address
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('default_address_id')
+          .eq('id', userId)
+          .single();
+          
+        if (userError) {
+          throw new Error(`Error getting user data: ${userError.message}`);
+        }
+        
+        // Update name and phone in user record
+        const { error: updateUserError } = await supabase
+          .from('users')
+          .update({
             name: formData.name,
             phone: formData.phone,
-            address: `${formData.address_line1}, ${formData.city}, ${formData.state}, ${formData.postal_code}`,
-            email: formData.email
-          }),
-        });
+            updated_at: new Date()
+          })
+          .eq('id', userId);
+          
+        if (updateUserError) {
+          throw new Error(`Error updating user record: ${updateUserError.message}`);
+        }
         
-        if (!profileResponse.ok) {
-          const errorData = await profileResponse.json();
-          throw new Error(`Error updating profile: ${errorData.error}`);
+        if (userData.default_address_id) {
+          // Update existing address
+          const { error: addressError } = await supabase
+            .from('addresses')
+            .update({
+              address_line1: formData.address_line1,
+              address_line2: formData.address_line2,
+              city: formData.city,
+              state: formData.state,
+              postal_code: formData.postal_code,
+              country: formData.country,
+              updated_at: new Date()
+            })
+            .eq('id', userData.default_address_id);
+            
+          if (addressError) {
+            throw new Error(`Error updating address: ${addressError.message}`);
+          }
+        } else {
+          // Create new address with explicit ID
+          const addressId = crypto.randomUUID();
+          const currentDate = new Date();
+          const { data: addressData, error: addressError } = await supabase
+            .from('addresses')
+            .insert({
+              id: addressId,
+              user_id: userId,
+              address_line1: formData.address_line1,
+              address_line2: formData.address_line2,
+              city: formData.city,
+              state: formData.state,
+              postal_code: formData.postal_code,
+              country: formData.country,
+              is_default: true,
+              created_at: currentDate,
+              updated_at: currentDate
+            })
+            .select()
+            .single();
+            
+          if (addressError) {
+            throw new Error(`Error creating address: ${addressError.message}`);
+          }
+          
+          // Set as default address
+          const { error: defaultError } = await supabase
+            .from('users')
+            .update({
+              default_address_id: addressData.id,
+              updated_at: new Date()
+            })
+            .eq('id', userId);
+            
+          if (defaultError) {
+            throw new Error(`Error setting default address: ${defaultError.message}`);
+          }
         }
       }
       
       // Create the order
+      const orderId = crypto.randomUUID();
+      const currentDate = new Date();
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
+          id: orderId,
           user_id: userId,
           shipping_address: {
             name: formData.name,
@@ -269,7 +355,9 @@ export default function CheckoutPage() {
             country: formData.country
           },
           status: 'pending',
-          total_amount: total
+          total_amount: total,
+          created_at: currentDate,
+          updated_at: currentDate
         })
         .select()
         .single();
@@ -278,31 +366,55 @@ export default function CheckoutPage() {
         throw new Error(`Error creating order: ${orderError.message}`);
       }
       
-      // Create order items
-      const orderItems = items.map(item => ({
-        order_id: order.id,
-        product_id: item.id,
-        product_name: item.name,
-        price: item.price,
-        quantity: item.quantity,
-        size: item.size || 'One Size'
-      }));
-      
-      const { error: itemsError } = await supabase
-        .from('order_items')
-        .insert(orderItems);
-        
-      if (itemsError) {
-        throw new Error(`Error creating order items: ${itemsError.message}`);
+      // Create order items (from cart)
+      for (const item of items) {
+        const orderItemId = crypto.randomUUID();
+        // Get product size ID if needed
+        let productSizeId = null;
+        if (item.size) {
+          // If we have the size field but not size_id, we need to fetch the product size ID
+          try {
+            const { data: sizeData } = await supabase
+              .from('product_sizes')
+              .select('id')
+              .eq('product_id', item.id)
+              .eq('size', item.size)
+              .single();
+            
+            if (sizeData) {
+              productSizeId = sizeData.id;
+            }
+          } catch (sizeError) {
+            console.error(`Error fetching size ID: ${sizeError}`);
+          }
+        }
+
+        const { error: itemError } = await supabase
+          .from('order_items')
+          .insert({
+            id: orderItemId,
+            order_id: order.id,
+            product_id: item.id,
+            price: item.price,
+            quantity: item.quantity,
+            product_size_id: productSizeId,
+            created_at: currentDate
+          });
+          
+        if (itemError) {
+          console.error(`Error adding order item: ${itemError.message}`);
+          // Continue with other items even if one fails
+        }
       }
       
-      // Clear cart and redirect to success
+      // Clear cart
       clearCart();
-      toast.success("Order placed successfully!");
+      
+      // Redirect to success page
       router.push(`/checkout/success?order_id=${order.id}`);
     } catch (err: any) {
-      console.error("Order creation error:", err);
-      setError(err.message || "Failed to create order. Please try again.");
+      console.error("Checkout error:", err);
+      setError(err.message || "An error occurred during checkout. Please try again.");
     } finally {
       setIsLoading(false);
     }

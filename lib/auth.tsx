@@ -46,20 +46,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setSession(data.session);
           setUser(data.session.user);
           
-          // Create a user profile if it doesn't exist
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
+          // Create a user record if it doesn't exist
+          const { data: userRecord, error: userError } = await supabase
+            .from('users')
             .select('*')
             .eq('id', data.session.user.id)
             .single();
             
-          if (profileError && profileError.code !== 'PGRST116') {
+          if (userError && userError.code !== 'PGRST116') {
             // PGRST116 means no rows returned, which is fine (new user)
-            console.error('Error fetching profile:', profileError);
+            console.error('Error fetching user record:', userError);
           }
           
-          if (!profile) {
-            // Create new profile using the server-side API
+          if (!userRecord) {
+            // Create new user record using the server-side API
             try {
               const response = await fetch('/api/profile/create', {
                 method: 'POST',
@@ -74,10 +74,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               
               if (!response.ok) {
                 const errorData = await response.json();
-                console.error('Error creating profile via API:', errorData.error);
+                console.error('Error creating user record via API:', errorData.error);
               }
             } catch (error) {
-              console.error('Failed to call profile creation API:', error);
+              console.error('Failed to call user creation API:', error);
             }
           }
         }
@@ -99,18 +99,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(newSession?.user ?? null);
           
           if (event === 'SIGNED_IN' && newSession) {
-            // Create a user profile if it doesn't exist
-            const { data: profile, error: profileError } = await supabase
-              .from('profiles')
+            // Create a user record if it doesn't exist
+            const { data: userRecord, error: userError } = await supabase
+              .from('users')
               .select('*')
               .eq('id', newSession.user.id)
               .single();
               
-            if (profileError && profileError.code !== 'PGRST116') {
-              console.error('Error fetching profile on auth change:', profileError);
+            if (userError && userError.code !== 'PGRST116') {
+              console.error('Error fetching user record on auth change:', userError);
             }
             
-            if (!profile) {
+            if (!userRecord) {
               try {
                 const response = await fetch('/api/profile/create', {
                   method: 'POST',
@@ -125,10 +125,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 
                 if (!response.ok) {
                   const errorData = await response.json();
-                  console.error('Error creating profile on auth change:', errorData.error);
+                  console.error('Error creating user record on auth change:', errorData.error);
                 }
               } catch (error) {
-                console.error('Failed to call profile creation API on auth change:', error);
+                console.error('Failed to call user creation API on auth change:', error);
               }
             }
             
@@ -151,7 +151,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -159,6 +159,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) {
         throw error;
       }
+      
+      // Ensure state is updated with the new session data
+      setSession(authData.session);
+      setUser(authData.session?.user ?? null);
+      
+      // Allow time for cookies to be properly set
+      await new Promise(resolve => setTimeout(resolve, 300));
       
       return { error: null, success: true };
     } catch (error: any) {
@@ -186,11 +193,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       console.log("Supabase auth signup successful:", data.user?.id);
       
-      // If there's a user created, immediately create a profile
+      // If there's a user created, immediately create a user record
       if (data.user) {
         try {
-          console.log("Attempting to create profile for new user:", data.user.id);
-          // Create profile using server API
+          console.log("Attempting to create user record for new user:", data.user.id);
+          // Create user record using server API
           const response = await fetch('/api/profile/create', {
             method: 'POST',
             headers: {
@@ -204,16 +211,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           
           if (!response.ok) {
             const errorData = await response.json();
-            console.error('Error creating profile during signup:', errorData.error);
+            console.error('Error creating user record during signup:', errorData.error);
             console.error('Response status:', response.status);
             console.error('Full response:', await response.text());
           } else {
-            console.log("Profile creation API call successful");
+            console.log("User creation API call successful");
             const responseData = await response.json();
-            console.log("Profile creation API response:", responseData);
+            console.log("User creation API response:", responseData);
           }
-        } catch (profileError) {
-          console.error('Failed to call profile creation API during signup:', profileError);
+        } catch (userError) {
+          console.error('Failed to call user creation API during signup:', userError);
         }
       }
       
@@ -230,12 +237,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const googleSignIn = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+      
+      if (error) {
+        console.error('Error with Google sign in:', error);
+      }
+    } catch (error) {
+      console.error('Exception during Google sign in:', error);
+    }
   };
 
   const value = {

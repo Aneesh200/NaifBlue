@@ -41,6 +41,7 @@ export default function ShippingPage() {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [userAddressId, setUserAddressId] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -78,21 +79,44 @@ export default function ShippingPage() {
           total: subtotal + shipping,
         });
 
-        // Get user profile for address
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
+        // Get user data
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('id, name, phone, default_address_id')
           .eq('id', session.user.id)
           .single();
 
-        if (profile && profile.shipping_address) {
-          setShippingAddress(profile.shipping_address);
-        } else if (profile && profile.name) {
-          // Pre-fill name from profile
+        if (userError) throw userError;
+
+        // If user has a default address, fetch it
+        if (userData.default_address_id) {
+          const { data: addressData, error: addressError } = await supabase
+            .from('addresses')
+            .select('*')
+            .eq('id', userData.default_address_id)
+            .single();
+
+          if (addressError) throw addressError;
+
+          if (addressData) {
+            setUserAddressId(addressData.id);
+            setShippingAddress({
+              full_name: userData.name || '',
+              address_line1: addressData.address_line1,
+              address_line2: addressData.address_line2 || '',
+              city: addressData.city,
+              state: addressData.state,
+              postal_code: addressData.postal_code,
+              country: addressData.country,
+              phone: userData.phone || '',
+            });
+          }
+        } else {
+          // Just pre-fill name and phone from user data
           setShippingAddress(prev => ({
             ...prev,
-            full_name: profile.name || '',
-            phone: profile.phone || '',
+            full_name: userData.name || '',
+            phone: userData.phone || '',
           }));
         }
       } catch (error) {
@@ -126,33 +150,87 @@ export default function ShippingPage() {
         return;
       }
 
-      // Save shipping address to user profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          shipping_address: shippingAddress,
-          updated_at: new Date(),
-        })
-        .eq('id', session.user.id);
+      // Update or create address
+      let addressId = userAddressId;
+      
+      if (addressId) {
+        // Update existing address
+        const { error: addressError } = await supabase
+          .from('addresses')
+          .update({
+            address_line1: shippingAddress.address_line1,
+            address_line2: shippingAddress.address_line2,
+            city: shippingAddress.city,
+            state: shippingAddress.state,
+            postal_code: shippingAddress.postal_code,
+            country: shippingAddress.country,
+            is_default: true,
+            updated_at: new Date(),
+          })
+          .eq('id', addressId);
 
-      if (profileError) throw profileError;
+        if (addressError) throw addressError;
+      } else {
+        // Create new address with explicit ID
+        addressId = crypto.randomUUID();
+        const currentDate = new Date();
+        const { data: newAddress, error: addressError } = await supabase
+          .from('addresses')
+          .insert({
+            id: addressId,
+            user_id: session.user.id,
+            address_line1: shippingAddress.address_line1,
+            address_line2: shippingAddress.address_line2,
+            city: shippingAddress.city,
+            state: shippingAddress.state,
+            postal_code: shippingAddress.postal_code,
+            country: shippingAddress.country,
+            is_default: true,
+            created_at: currentDate,
+            updated_at: currentDate
+          })
+          .select()
+          .single();
+
+        if (addressError) throw addressError;
+        
+        addressId = newAddress.id;
+        
+        // Update user with default address
+        const { error: userError } = await supabase
+          .from('users')
+          .update({
+            default_address_id: addressId,
+            name: shippingAddress.full_name,
+            phone: shippingAddress.phone,
+            updated_at: new Date(),
+          })
+          .eq('id', session.user.id);
+
+        if (userError) throw userError;
+      }
       
       // Create order for payment
+      const orderId = crypto.randomUUID();
+      const currentDate = new Date();
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
+          id: orderId,
           user_id: session.user.id,
-          shipping_address: shippingAddress,
+          shipping_address: shippingAddress, // Store as JSON for order record
           status: 'pending',
           total_amount: cartSummary.total,
+          created_at: currentDate,
+          updated_at: currentDate
         })
         .select()
         .single();
 
       if (orderError) throw orderError;
       
-      // Redirect to payment page
-      router.push(`/checkout/payment?order_id=${order.id}`);
+      // Redirect directly to success page
+      router.push(`/checkout/success?order_id=${order.id}`);
     } catch (error) {
       console.error('Error processing checkout:', error);
       alert('Failed to process checkout');

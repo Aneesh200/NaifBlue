@@ -8,7 +8,7 @@ export async function GET(
   try {
     const productId = params.id;
 
-    // Fetch the product
+    // Fetch the product with sizes
     const product = await prisma.product.findUnique({
       where: {
         id: productId,
@@ -16,8 +16,9 @@ export async function GET(
       include: {
         school: true,
         category: true,
+        product_sizes: true,
       },
-    });
+    }) as any; // Use any type to avoid TypeScript errors
 
     if (!product) {
       return NextResponse.json(
@@ -26,10 +27,14 @@ export async function GET(
       );
     }
 
-    // Transform the product to include category_name
+    // Transform the product to include category_name and sizes
     const transformedProduct = {
       ...product,
-      category_name: product.category?.name || product.category_name,
+      category_name: product.category?.name || null,
+      // Extract just the size names to an array
+      sizes: product.product_sizes.map((sizeObj: any) => sizeObj.size),
+      // Remove the full product_sizes object to keep the response clean
+      product_sizes: undefined
     };
 
     return NextResponse.json(transformedProduct);

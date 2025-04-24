@@ -14,7 +14,7 @@ interface Product {
   price: number;
   images: string[];
   category_name: string;
-  sizes: string[];
+  sizes?: string[];
   in_stock: boolean;
 }
 
@@ -28,8 +28,10 @@ export default function ProductCard({ product }: ProductCardProps) {
 
   const handleAddToCart = () => {
     try {
-      // Select first size as default
-      const defaultSize = product.sizes[0] || "One Size";
+      // Check if sizes exist and use a default if not
+      const defaultSize = product.sizes && product.sizes.length > 0 
+        ? product.sizes[0] 
+        : "One Size";
 
       // Add item to cart
       addItem({
@@ -38,7 +40,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         price: product.price,
         quantity: 1,
         size: defaultSize,
-        image: product.images[0] || ""
+        image: product.images && product.images.length > 0 ? product.images[0] : ""
       });
 
       toast.success("Added to cart!");

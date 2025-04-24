@@ -3,7 +3,7 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('Profile creation API called');
+    console.log('User creation API called');
     // Get the request body
     const body = await request.json();
     const { id, email, name } = body;
@@ -18,30 +18,30 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      // Check if profile already exists
-      const { data: existingProfile, error: checkError } = await supabaseAdmin
-        .from('profiles')
+      // Check if user already exists
+      const { data: existingUser, error: checkError } = await supabaseAdmin
+        .from('users')
         .select('*')
         .eq('id', id)
         .maybeSingle();
         
       if (checkError) {
-        console.error('Error checking for existing profile:', checkError);
+        console.error('Error checking for existing user:', checkError);
         throw checkError;
       }
       
-      // If profile exists, return it
-      if (existingProfile) {
-        console.log('Profile already exists, returning existing profile');
+      // If user exists, return it
+      if (existingUser) {
+        console.log('User already exists, returning existing user');
         return NextResponse.json({ 
           success: true, 
-          data: existingProfile,
-          message: 'Profile already exists'
+          data: existingUser,
+          message: 'User already exists'
         });
       }
       
-      // Create new profile using the user ID as the central reference
-      const profileData = {
+      // Create new user record using the user ID as the central reference
+      const userData = {
         id,                            // User ID as the central reference
         email,
         name: name || email.split('@')[0],
@@ -51,32 +51,32 @@ export async function POST(request: NextRequest) {
       };
       
       const { data, error } = await supabaseAdmin
-        .from('profiles')
-        .insert(profileData)
+        .from('users')
+        .insert(userData)
         .select()
         .single();
         
       if (error) {
-        console.error('Error creating profile:', error);
+        console.error('Error creating user record:', error);
         throw error;
       }
       
-      console.log('Profile created successfully:', data.id);
+      console.log('User record created successfully:', data.id);
       
       return NextResponse.json({ 
         success: true, 
         data,
-        message: 'Profile created successfully'
+        message: 'User record created successfully'
       });
     } catch (error) {
-      console.error('Profile creation error:', error);
+      console.error('User creation error:', error);
       return NextResponse.json(
-        { error: `Failed to create profile: ${error.message}` },
+        { error: `Failed to create user: ${error.message}` },
         { status: 500 }
       );
     }
   } catch (error: any) {
-    console.error('Unexpected error in profile creation API:', error);
+    console.error('Unexpected error in user creation API:', error);
     return NextResponse.json(
       { error: `An unexpected error occurred: ${error.message || JSON.stringify(error)}` },
       { status: 500 }

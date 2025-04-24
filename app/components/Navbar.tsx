@@ -47,17 +47,70 @@ export default function Navbar() {
         return;
       }
 
+      // Debug current user state
+      console.log('Current auth user:', {
+        id: user.id,
+        email: user.email,
+        hasToken: !!user.access_token,
+      });
+
+      // Add small delay to ensure auth cookies are set
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       try {
-        const { data, error } = await fetch('/api/user/role').then(res => res.json());
-        if (error) throw error;
-        setUserRole(data?.role || null);
+        // Configure headers with the token if available
+        const headers: HeadersInit = {
+          'Content-Type': 'application/json',
+        };
+        
+        // Add Authorization header if we have a token
+        if (user.access_token) {
+          headers['Authorization'] = `Bearer ${user.access_token}`;
+          console.log('Adding auth token to request headers');
+        }
+        
+        // Common request options
+        const requestOptions = {
+          credentials: 'include' as RequestCredentials, // Make sure cookies are sent
+          headers
+        };
+        
+        // Try the users/role endpoint
+        console.log('Fetching user role...');
+        let response = await fetch('/api/users/role', requestOptions);
+        
+        console.log('Role API response status:', response.status);
+        
+        // If that fails, try the fallback endpoint
+        if (!response.ok) {
+          console.log('Primary role API failed, trying fallback');
+          response = await fetch('/api/user/role', requestOptions);
+          console.log('Fallback API response status:', response.status);
+        }
+        
+        // If either endpoint worked, get the data
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Role data:', data);
+          setUserRole(data.role);
+        } else {
+          console.error('Failed to fetch user role, status:', response.status);
+          // Don't set role to null if we already have one - this prevents UI flashing
+          if (!userRole) {
+            setUserRole(null);
+          }
+        }
       } catch (error) {
         console.error('Error fetching user role:', error);
+        // Don't set role to null if we already have one
+        if (!userRole) {
+          setUserRole(null);
+        }
       }
     }
 
     getUserRole();
-  }, [user]);
+  }, [user, userRole]);
 
   const getNavLinkClass = (path: string) => {
     const isActive = 

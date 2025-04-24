@@ -80,7 +80,7 @@ export default function SuccessPage() {
 
   return (
     <div className="container mx-auto px-4 py-12 max-w-3xl">
-      <div className="bg-white rounded-lg shadow-md p-8 text-center">
+      <div className="bg-white rounded-lg shadow-lg p-8 text-center">
         <div className="flex justify-center mb-6">
           <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
             <CheckCircle className="w-12 h-12 text-green-600" />
@@ -108,9 +108,15 @@ export default function SuccessPage() {
             </div>
             <div>
               <p className="text-sm text-gray-500">Status</p>
-              <p className="font-medium">{order.status}</p>
+              <p className="font-medium capitalize">{order.status}</p>
             </div>
           </div>
+        </div>
+        
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-8">
+          <p className="text-blue-800">
+            <strong>Demo Store Notice:</strong> This is a demo order. No actual payment has been processed and no products will be shipped.
+          </p>
         </div>
         
         <p className="text-gray-600 mb-8">
@@ -125,10 +131,10 @@ export default function SuccessPage() {
             Continue Shopping
           </Link>
           <Link 
-            href={`/orders/${order.id}`}
+            href="/profile"
             className="border border-gray-300 py-3 px-6 rounded-lg font-medium hover:bg-gray-50"
           >
-            View Order Details
+            View My Orders
           </Link>
         </div>
       </div>

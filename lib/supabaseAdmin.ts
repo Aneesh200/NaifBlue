@@ -1,29 +1,16 @@
 import { createClient } from '@supabase/supabase-js';
-import { Database } from '@/types/supabase';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY as string;
 
-// Check if environment variables are set
-if (!supabaseUrl || !supabaseServiceKey) {
-  console.error(
-    'Missing environment variables for Supabase Admin client. ' +
-    'Please ensure NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are set.'
-  );
-  // In development, we throw an error to make it clear what's missing
-  if (process.env.NODE_ENV === 'development') {
-    throw new Error('Missing required environment variables for Supabase Admin client');
-  }
+if (!supabaseUrl || !supabaseServiceRoleKey) {
+  console.error('Missing Supabase environment variables. Make sure NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are set.');
 }
 
-// Create a Supabase client with the service role key for admin access
-export const supabaseAdmin = createClient<Database>(
-  supabaseUrl as string, 
-  supabaseServiceKey as string,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
+// Create a Supabase client with admin privileges
+export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false
   }
-); 
+}); 

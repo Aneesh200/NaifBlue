@@ -13,7 +13,7 @@ interface Product {
   price: number;
   images: string[];
   category_name: string;
-  sizes: string[];
+  sizes?: string[];
   in_stock: boolean;
 }
 
@@ -37,8 +37,11 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
         const data = await response.json();
         
         setProduct(data);
+        // Check if sizes exist before setting the selected size
         if (data.sizes && data.sizes.length > 0) {
           setSelectedSize(data.sizes[0]);
+        } else {
+          setSelectedSize('One Size');
         }
       } catch (error) {
         console.error('Error fetching product:', error);
@@ -52,18 +55,18 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
 
   const handleAddToCart = () => {
     try {
-      if (!product || !selectedSize) return;
+      if (!product) return;
       
       const { addItem } = useCartStore.getState();
       
-      // Add item to cart
+      // Add item to cart with proper null checks
       addItem({
         id: product.id,
         name: product.name,
         price: product.price,
-        image: product.images[0] || '',
+        image: product.images && product.images.length > 0 ? product.images[0] : '',
         quantity: quantity,
-        size: selectedSize
+        size: selectedSize || 'One Size'
       });
       
       // Show success message

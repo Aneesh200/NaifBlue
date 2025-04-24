@@ -1,7 +1,7 @@
 // components/AuthForm.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,27 @@ export default function AuthForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectPath = searchParams.get('redirect') || '/';
+  const authError = searchParams.get('error');
+  
+  // Check for auth errors from callback
+  useEffect(() => {
+    if (authError) {
+      const errorMessages: Record<string, string> = {
+        'auth_error': 'Authentication failed. Please try again.',
+        'session_error': 'Failed to establish session. Please try again.',
+        'no_session': 'No session was created. Please try again.',
+        'no_code': 'Authorization code missing. Please try again.',
+        'unknown': 'An unknown error occurred. Please try again.'
+      };
+      
+      toast.error(errorMessages[authError] || 'Authentication error');
+      
+      // Remove the error from URL
+      const url = new URL(window.location.href);
+      url.searchParams.delete('error');
+      router.replace(url.pathname + url.search);
+    }
+  }, [authError, router]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,9 +50,12 @@ export default function AuthForm() {
         const { error, success } = await signIn(email, password);
         
         if (error) throw error;
+        
         if (success) {
           toast.success('Signed in successfully!');
-          router.push(redirectPath);
+          setTimeout(() => {
+            router.push(redirectPath);
+          }, 500);
         }
       } else {
         const response = await fetch('/api/auth/register', {
@@ -72,7 +96,6 @@ export default function AuthForm() {
       await googleSignIn();
     } catch (error: any) {
       toast.error(error.message || 'An error occurred with Google Sign In');
-    } finally {
       setLoading(false);
     }
   };
