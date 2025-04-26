@@ -127,7 +127,7 @@ export default function Navbar() {
       <div className="container flex items-center justify-between h-16 px-4 md:px-6">
         {/* Logo */}
         <Link href="/" className="font-bold text-xl text-blue-600">
-          Naif Bleu
+          PgUniform
         </Link>
 
         {/* Desktop Navigation */}
@@ -137,6 +137,9 @@ export default function Navbar() {
           </Link>
           <Link href="/products" className={getNavLinkClass('/products')}>
             Products
+          </Link>
+          <Link href="/about" className={getNavLinkClass('/about')}>
+            About Us
           </Link>
           <Link href="/schools" className={getNavLinkClass('/schools')}>
             Schools
@@ -182,7 +185,7 @@ export default function Navbar() {
                   <Link href="/profile">Profile</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href="/profile/orders">Orders</Link>
+                  <Link href="/orders">Orders</Link>
                 </DropdownMenuItem>
                 {userRole === 'admin' && (
                   <DropdownMenuItem asChild>
@@ -226,6 +229,9 @@ export default function Navbar() {
                 </Link>
                 <Link href="/products" className="text-lg font-medium py-2">
                   Products
+                </Link>
+                <Link href="/about" className="text-lg font-medium py-2">
+                  About Us
                 </Link>
                 <Link href="/schools" className="text-lg font-medium py-2">
                   Schools

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import ProductCard from '../components/ProductCard';
 import ProductQuickView from '../components/ProductQuickView';
 
@@ -11,11 +12,16 @@ interface Product {
   price: number;
   images: string[];
   category_name: string;
+  school_name?: string;
+  school_id?: string;
   sizes?: string[];
   in_stock: boolean;
 }
 
 export default function ProductsPage() {
+  const searchParams = useSearchParams();
+  const schoolId = searchParams.get('school');
+  
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<string[]>([]);
@@ -24,12 +30,18 @@ export default function ProductsPage() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
   const [quickViewOpen, setQuickViewOpen] = useState(false);
+  const [schoolName, setSchoolName] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchProducts() {
       try {
-        // Fetch all products
-        const productsResponse = await fetch('/api/products');
+        // Fetch products with optional school filter
+        let url = '/api/products';
+        if (schoolId) {
+          url += `?school=${schoolId}`;
+        }
+        
+        const productsResponse = await fetch(url);
         if (!productsResponse.ok) {
           throw new Error('Failed to fetch products');
         }
@@ -38,6 +50,14 @@ export default function ProductsPage() {
         // Get unique categories
         const uniqueCategories = Array.from(new Set(data.map((product: Product) => product.category_name)));
         setCategories(uniqueCategories as string[]);
+        
+        // Get school name if filtering by school
+        if (schoolId && data.length > 0) {
+          const schoolProduct = data.find((p: Product) => p.school_id === schoolId);
+          if (schoolProduct) {
+            setSchoolName(schoolProduct.school_name);
+          }
+        }
         
         // Apply filters
         let filteredProducts = data as Product[];
@@ -86,7 +106,7 @@ export default function ProductsPage() {
     }
 
     fetchProducts();
-  }, [activeCategory, sortOption, searchQuery]);
+  }, [activeCategory, sortOption, searchQuery, schoolId]);
 
   const handleCategoryClick = (category: string) => {
     setActiveCategory(category === activeCategory ? null : category);
@@ -111,7 +131,15 @@ export default function ProductsPage() {
 
   return (
     <div className="container mx-auto px-4 py-12">
-      <h1 className="text-3xl font-bold mb-8">Shop Our Products</h1>
+      <h1 className="text-3xl font-bold mb-2">
+        {schoolName ? `${schoolName} Uniforms` : 'Shop Our Products'}
+      </h1>
+      
+      {schoolName && (
+        <p className="text-gray-600 mb-8">
+          Browse our collection of uniforms for {schoolName}
+        </p>
+      )}
       
       {/* Search and Sort */}
       <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
