@@ -72,8 +72,8 @@ export default function SchoolsPage() {
   return (
     <div className="container mx-auto py-12 px-4">
       <div className="text-center mb-8">
-        <h1 className="text-4xl font-bold mb-6">Our Affiliated Schools</h1>
-        <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+        <h1 className="text-4xl font-light mb-6">Our Affiliated Schools</h1>
+        <p className="text-xl text-gray-500 max-w-3xl mx-auto">
           We provide high-quality uniforms for schools across India. Browse our affiliated schools and discover the uniform options available for each institution.
         </p>
       </div>
@@ -97,13 +97,13 @@ export default function SchoolsPage() {
       
       {filteredSchools.length === 0 ? (
         <div className="text-center py-12">
-          <p className="text-gray-500">No schools found matching your search criteria.</p>
+          <p className="text-gray-500 text-sm">No schools found matching your search criteria.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {filteredSchools.map((school) => (
-            <Card key={school.id} className="overflow-hidden transition-all hover:shadow-lg">
-              <div className="h-48 w-full relative">
+            <Card key={school.id} className="overflow-hidden border border-gray-100 hover:border-black transition-colors duration-200">
+              <div className="h-48 w-full relative bg-gray-50">
                 {school.logo_url ? (
                   <Image
                     src={school.logo_url}
@@ -112,20 +112,20 @@ export default function SchoolsPage() {
                     className="object-cover"
                   />
                 ) : (
-                  <div className="absolute inset-0 bg-gray-200 flex items-center justify-center">
-                    <p className="text-gray-500 text-2xl font-bold">{school.name.charAt(0)}</p>
+                  <div className="absolute inset-0 bg-gray-50 flex items-center justify-center">
+                    <p className="text-gray-400 text-2xl font-light">{school.name.charAt(0)}</p>
                   </div>
                 )}
               </div>
               <CardHeader>
-                <CardTitle>{school.name}</CardTitle>
-                <CardDescription>{school.address || 'Location not available'}</CardDescription>
+                <CardTitle className="font-light">{school.name}</CardTitle>
+                <CardDescription className="text-gray-500">{school.address || 'Location not available'}</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-600 line-clamp-3">{school.uniform_requirements || 'Uniform requirements not specified'}</p>
+                <p className="text-gray-500 text-sm line-clamp-3">{school.uniform_requirements || 'Uniform requirements not specified'}</p>
               </CardContent>
               <CardFooter>
-                <Button asChild className="w-full">
+                <Button asChild className="w-full bg-black text-white hover:bg-white hover:text-black border border-black transition-colors duration-200">
                   <Link href={`/products?school=${school.id}`}>
                     View Uniforms
                   </Link>
@@ -136,33 +136,33 @@ export default function SchoolsPage() {
         </div>
       )}
       
-      <div className="mt-20 bg-gray-50 p-8 rounded-lg">
+      <div className="mt-20 bg-white border border-gray-100 p-8">
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold mb-4">School Uniform Partnership Program</h2>
-          <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+          <h2 className="text-3xl font-light mb-4">School Uniform Partnership Program</h2>
+          <p className="text-lg text-gray-500 max-w-3xl mx-auto">
             Is your school looking for a reliable uniform provider? Join our partnership program and enjoy exclusive benefits and customized uniform solutions.
           </p>
         </div>
         
         <div className="grid md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-lg shadow-sm">
-            <h3 className="text-xl font-bold mb-3">Quality Assurance</h3>
-            <p className="text-gray-600">Our uniforms are made from premium fabrics that are comfortable, durable, and designed to withstand daily wear.</p>
+          <div className="bg-white p-6 border border-gray-100">
+            <h3 className="text-xl font-light mb-3">Quality Assurance</h3>
+            <p className="text-gray-500 text-sm">Our uniforms are made from premium fabrics that are comfortable, durable, and designed to withstand daily wear.</p>
           </div>
           
-          <div className="bg-white p-6 rounded-lg shadow-sm">
-            <h3 className="text-xl font-bold mb-3">Customization Options</h3>
-            <p className="text-gray-600">We offer customized uniforms with school logos, colors, and designs that reflect your institution's identity.</p>
+          <div className="bg-white p-6 border border-gray-100">
+            <h3 className="text-xl font-light mb-3">Customization Options</h3>
+            <p className="text-gray-500 text-sm">We offer customized uniforms with school logos, colors, and designs that reflect your institution's identity.</p>
           </div>
           
-          <div className="bg-white p-6 rounded-lg shadow-sm">
-            <h3 className="text-xl font-bold mb-3">Timely Delivery</h3>
-            <p className="text-gray-600">We ensure timely production and delivery of uniforms to meet your school's schedule and requirements.</p>
+          <div className="bg-white p-6 border border-gray-100">
+            <h3 className="text-xl font-light mb-3">Timely Delivery</h3>
+            <p className="text-gray-500 text-sm">We ensure timely production and delivery of uniforms to meet your school's schedule and requirements.</p>
           </div>
         </div>
         
         <div className="text-center">
-          <Button size="lg">
+          <Button size="lg" className="bg-black text-white hover:bg-white hover:text-black border border-black transition-colors duration-200">
             <Link href="/contact">Contact Us for Partnership</Link>
           </Button>
         </div>

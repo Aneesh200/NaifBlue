@@ -5,7 +5,7 @@ import { useEffect, useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
-import { Clock, Package, ShoppingBag, User } from 'lucide-react';
+import { Clock, Package, ShoppingBag, User, ArrowRight } from 'lucide-react';
 
 interface UserProfile {
   id: string;
@@ -197,8 +197,8 @@ export default function ProfilePage() {
     return (
       <div className="container mx-auto px-4 py-12 text-center">
         <div className="flex flex-col items-center justify-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-          <p className="mt-4 text-gray-600">Loading your profile...</p>
+          <div className="w-16 h-16 border-4 border-black border-t-transparent rounded-full animate-spin"></div>
+          <p className="mt-4 text-gray-500">Loading your profile...</p>
         </div>
       </div>
     );
@@ -207,30 +207,30 @@ export default function ProfilePage() {
   // Status badges styling
   const getStatusStyle = (status: string) => {
     const styles = {
-      pending: 'bg-yellow-100 text-yellow-800',
-      processing: 'bg-blue-100 text-blue-800',
-      shipped: 'bg-indigo-100 text-indigo-800',
-      delivered: 'bg-green-100 text-green-800',
-      completed: 'bg-green-100 text-green-800',
-      cancelled: 'bg-red-100 text-red-800',
+      pending: 'bg-gray-50 text-gray-500 border border-gray-100',
+      processing: 'bg-gray-50 text-gray-500 border border-gray-100',
+      shipped: 'bg-gray-50 text-gray-500 border border-gray-100',
+      delivered: 'bg-gray-50 text-gray-500 border border-gray-100',
+      completed: 'bg-gray-50 text-gray-500 border border-gray-100',
+      cancelled: 'bg-gray-50 text-gray-500 border border-gray-100',
     };
     
-    return styles[status as keyof typeof styles] || 'bg-gray-100 text-gray-800';
+    return styles[status as keyof typeof styles] || 'bg-gray-50 text-gray-500 border border-gray-100';
   };
 
   return (
     <div className="container mx-auto px-4 py-12">
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8">My Account</h1>
+        <h1 className="text-3xl font-light mb-8">My Account</h1>
         
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
+          <div className="bg-white border border-gray-100 text-gray-500 px-4 py-3 mb-6">
             {error}
           </div>
         )}
         
         {successMessage && (
-          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded mb-6">
+          <div className="bg-white border border-gray-100 text-gray-500 px-4 py-3 mb-6">
             {successMessage}
           </div>
         )}
@@ -238,247 +238,158 @@ export default function ProfilePage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Account Summary */}
           <div className="md:col-span-1">
-            <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+            <div className="bg-white border border-gray-100 p-6 mb-6">
               <div className="flex items-center mb-4">
-                <div className="bg-blue-100 p-2 rounded-full mr-3">
-                  <User className="h-6 w-6 text-blue-600" />
+                <div className="bg-gray-50 p-2 rounded-full mr-3">
+                  <User className="h-6 w-6 text-gray-500" />
                 </div>
-                <h2 className="text-xl font-semibold">Account Info</h2>
+                <h2 className="text-xl font-light">Account Info</h2>
               </div>
-              <div className="border-t pt-4">
-                <p className="text-gray-600 mb-1">Email</p>
-                <p className="font-medium mb-3">{profile?.email}</p>
-                
-                <p className="text-gray-600 mb-1">Name</p>
-                <p className="font-medium mb-3">{profile?.name || 'Not set'}</p>
-                
-                <p className="text-gray-600 mb-1">Phone</p>
-                <p className="font-medium mb-3">{profile?.phone || 'Not set'}</p>
-                
-                <p className="text-gray-600 mb-1">Address</p>
-                <p className="font-medium">
-                  {profile?.addressLine1 ? 
-                    `${profile?.addressLine1}, ${profile?.city}, ${profile?.state} ${profile?.postalCode}` 
-                    : 'Not set'}
-                </p>
+              <div className="border-t border-gray-100 pt-4">
+                <p className="text-gray-500 mb-1">Email</p>
+                <p className="font-light mb-3">{profile?.email}</p>
+                <p className="text-gray-500 mb-1">Phone</p>
+                <p className="font-light">{profile?.phone || 'Not provided'}</p>
               </div>
             </div>
             
-            <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="bg-white border border-gray-100 p-6">
               <div className="flex items-center mb-4">
-                <div className="bg-blue-100 p-2 rounded-full mr-3">
-                  <ShoppingBag className="h-6 w-6 text-blue-600" />
+                <div className="bg-gray-50 p-2 rounded-full mr-3">
+                  <Package className="h-6 w-6 text-gray-500" />
                 </div>
-                <h2 className="text-xl font-semibold">Order Summary</h2>
+                <h2 className="text-xl font-light">Recent Orders</h2>
               </div>
-              <div className="border-t pt-4">
-                <div className="flex justify-between items-center mb-4">
-                  <p className="text-gray-600">Total Orders</p>
-                  <p className="font-medium text-lg">{orderCount}</p>
-                </div>
-                <Link 
-                  href="/orders" 
-                  className="block w-full bg-blue-600 text-white text-center py-2 px-4 rounded hover:bg-blue-700"
-                >
-                  View All Orders
-                </Link>
+              <div className="border-t border-gray-100 pt-4">
+                {recentOrders.length > 0 ? (
+                  <div className="space-y-4">
+                    {recentOrders.map((order) => (
+                      <div key={order.id} className="flex justify-between items-center">
+                        <div>
+                          <p className="text-sm text-gray-500">Order #{order.id.substring(0, 8)}</p>
+                          <p className="text-sm font-light">₹{order.total_amount.toFixed(2)}</p>
+                        </div>
+                        <span className={`px-2 py-1 text-xs font-light ${getStatusStyle(order.status)}`}>
+                          {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                        </span>
+                      </div>
+                    ))}
+                    <Link 
+                      href="/orders"
+                      className="text-gray-500 hover:text-black text-sm font-light flex items-center"
+                    >
+                      View All Orders <ArrowRight className="ml-1 w-4 h-4" />
+                    </Link>
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-sm">No orders yet</p>
+                )}
               </div>
             </div>
           </div>
           
-          {/* Main Content */}
+          {/* Profile Form */}
           <div className="md:col-span-2">
-            {/* Update Profile Form */}
-            <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-              <h2 className="text-xl font-semibold mb-4">Update Profile</h2>
-              <form onSubmit={handleUpdateProfile}>
-                <div className="mb-4">
-                  <label htmlFor="name" className="block text-gray-700 mb-2">Full Name</label>
-                  <input
-                    id="name"
-                    type="text"
-                    value={profile?.name || ''}
-                    onChange={(e) => setProfile(prev => prev ? {...prev, name: e.target.value} : prev)}
-                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Your full name"
-                  />
+            <div className="bg-white border border-gray-100 p-6">
+              <h2 className="text-xl font-light mb-6">Update Profile</h2>
+              <form onSubmit={handleUpdateProfile} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label htmlFor="name" className="block text-sm text-gray-500 mb-1">Full Name</label>
+                    <input
+                      type="text"
+                      id="name"
+                      value={profile?.name || ''}
+                      onChange={(e) => setProfile(prev => prev ? {...prev, name: e.target.value} : null)}
+                      className="w-full px-3 py-2 border border-gray-100 focus:border-black focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="phone" className="block text-sm text-gray-500 mb-1">Phone Number</label>
+                    <input
+                      type="tel"
+                      id="phone"
+                      value={profile?.phone || ''}
+                      onChange={(e) => setProfile(prev => prev ? {...prev, phone: e.target.value} : null)}
+                      className="w-full px-3 py-2 border border-gray-100 focus:border-black focus:outline-none"
+                    />
+                  </div>
                 </div>
                 
-                <div className="mb-4">
-                  <label htmlFor="phone" className="block text-gray-700 mb-2">Phone Number</label>
+                <div>
+                  <label htmlFor="address1" className="block text-sm text-gray-500 mb-1">Address Line 1</label>
                   <input
-                    id="phone"
-                    type="tel"
-                    value={profile?.phone || ''}
-                    onChange={(e) => setProfile(prev => prev ? {...prev, phone: e.target.value} : prev)}
-                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Your phone number"
-                  />
-                </div>
-                
-                <div className="mb-4">
-                  <label htmlFor="addressLine1" className="block text-gray-700 mb-2">Address Line 1</label>
-                  <input
-                    id="addressLine1"
                     type="text"
+                    id="address1"
                     value={profile?.addressLine1 || ''}
-                    onChange={(e) => setProfile(prev => prev ? {...prev, addressLine1: e.target.value} : prev)}
-                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Street address"
+                    onChange={(e) => setProfile(prev => prev ? {...prev, addressLine1: e.target.value} : null)}
+                    className="w-full px-3 py-2 border border-gray-100 focus:border-black focus:outline-none"
                   />
                 </div>
                 
-                <div className="mb-4">
-                  <label htmlFor="addressLine2" className="block text-gray-700 mb-2">Address Line 2 (Optional)</label>
+                <div>
+                  <label htmlFor="address2" className="block text-sm text-gray-500 mb-1">Address Line 2</label>
                   <input
-                    id="addressLine2"
                     type="text"
+                    id="address2"
                     value={profile?.addressLine2 || ''}
-                    onChange={(e) => setProfile(prev => prev ? {...prev, addressLine2: e.target.value} : prev)}
-                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Apartment, suite, unit, etc."
+                    onChange={(e) => setProfile(prev => prev ? {...prev, addressLine2: e.target.value} : null)}
+                    className="w-full px-3 py-2 border border-gray-100 focus:border-black focus:outline-none"
                   />
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div>
-                    <label htmlFor="city" className="block text-gray-700 mb-2">City</label>
+                    <label htmlFor="city" className="block text-sm text-gray-500 mb-1">City</label>
                     <input
-                      id="city"
                       type="text"
+                      id="city"
                       value={profile?.city || ''}
-                      onChange={(e) => setProfile(prev => prev ? {...prev, city: e.target.value} : prev)}
-                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="City"
+                      onChange={(e) => setProfile(prev => prev ? {...prev, city: e.target.value} : null)}
+                      className="w-full px-3 py-2 border border-gray-100 focus:border-black focus:outline-none"
                     />
                   </div>
                   <div>
-                    <label htmlFor="state" className="block text-gray-700 mb-2">State</label>
+                    <label htmlFor="state" className="block text-sm text-gray-500 mb-1">State</label>
                     <input
-                      id="state"
                       type="text"
+                      id="state"
                       value={profile?.state || ''}
-                      onChange={(e) => setProfile(prev => prev ? {...prev, state: e.target.value} : prev)}
-                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="State"
+                      onChange={(e) => setProfile(prev => prev ? {...prev, state: e.target.value} : null)}
+                      className="w-full px-3 py-2 border border-gray-100 focus:border-black focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="postalCode" className="block text-sm text-gray-500 mb-1">Postal Code</label>
+                    <input
+                      type="text"
+                      id="postalCode"
+                      value={profile?.postalCode || ''}
+                      onChange={(e) => setProfile(prev => prev ? {...prev, postalCode: e.target.value} : null)}
+                      className="w-full px-3 py-2 border border-gray-100 focus:border-black focus:outline-none"
                     />
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                  <div>
-                    <label htmlFor="postalCode" className="block text-gray-700 mb-2">Postal Code</label>
-                    <input
-                      id="postalCode"
-                      type="text"
-                      value={profile?.postalCode || ''}
-                      onChange={(e) => setProfile(prev => prev ? {...prev, postalCode: e.target.value} : prev)}
-                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Postal code"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="country" className="block text-gray-700 mb-2">Country</label>
-                    <input
-                      id="country"
-                      type="text"
-                      value={profile?.country || 'India'}
-                      onChange={(e) => setProfile(prev => prev ? {...prev, country: e.target.value} : prev)}
-                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Country"
-                    />
-                  </div>
+                <div>
+                  <label htmlFor="country" className="block text-sm text-gray-500 mb-1">Country</label>
+                  <input
+                    type="text"
+                    id="country"
+                    value={profile?.country || 'India'}
+                    onChange={(e) => setProfile(prev => prev ? {...prev, country: e.target.value} : null)}
+                    className="w-full px-3 py-2 border border-gray-100 focus:border-black focus:outline-none"
+                  />
                 </div>
                 
                 <button
                   type="submit"
                   disabled={updating}
-                  className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed"
+                  className="w-full bg-black text-white py-2 px-4 hover:bg-white hover:text-black border border-black transition-colors duration-200 disabled:opacity-50"
                 >
                   {updating ? 'Updating...' : 'Update Profile'}
                 </button>
               </form>
-            </div>
-            
-            {/* Recent Orders */}
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <div className="flex justify-between items-center mb-6">
-                <div className="flex items-center">
-                  <div className="bg-blue-100 p-2 rounded-full mr-3">
-                    <Clock className="h-6 w-6 text-blue-600" />
-                  </div>
-                  <h2 className="text-xl font-semibold">Recent Orders</h2>
-                </div>
-                <Link 
-                  href="/orders" 
-                  className="text-blue-600 hover:underline"
-                >
-                  View All
-                </Link>
-              </div>
-              
-              {recentOrders.length === 0 ? (
-                <div className="py-8 text-center">
-                  <Package className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                  <p className="text-gray-500">You haven't placed any orders yet.</p>
-                  <Link
-                    href="/products"
-                    className="mt-4 inline-block text-blue-600 hover:underline"
-                  >
-                    Start shopping
-                  </Link>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full">
-                    <thead className="bg-gray-50 border-b">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order ID</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
-                        <th className="px-4 py-3"></th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {recentOrders.map((order) => {
-                        const orderDate = new Date(order.created_at).toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric'
-                        });
-                        
-                        return (
-                          <tr key={order.id} className="hover:bg-gray-50">
-                            <td className="px-4 py-3 whitespace-nowrap">
-                              <span className="font-medium text-gray-900">#{order.id.substring(0, 8)}</span>
-                            </td>
-                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                              {orderDate}
-                            </td>
-                            <td className="px-4 py-3 whitespace-nowrap">
-                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusStyle(order.status)}`}>
-                                {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
-                              ₹{order.total_amount.toFixed(2)}
-                            </td>
-                            <td className="px-4 py-3 whitespace-nowrap text-right text-sm">
-                              <Link
-                                href={`/orders/${order.id}`}
-                                className="text-blue-600 hover:text-blue-900"
-                              >
-                                View
-                              </Link>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
             </div>
           </div>
         </div>

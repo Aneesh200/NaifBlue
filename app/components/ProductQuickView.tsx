@@ -42,12 +42,14 @@ export default function ProductQuickView({ product, open, onOpenChange }: Produc
 
   const handleAddToCart = () => {
     try {
+      if (!product.in_stock) return;
+
       addItem({
         id: product.id,
         name: product.name,
         price: product.price,
         quantity: quantity,
-        size: selectedSize || "One Size",
+        size: selectedSize,
         image: product.images && product.images.length > 0 ? product.images[0] : ""
       });
 
@@ -78,15 +80,15 @@ export default function ProductQuickView({ product, open, onOpenChange }: Produc
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">{product.name}</DialogTitle>
+          <DialogTitle className="text-2xl font-light">{product.name}</DialogTitle>
           <DialogDescription>
-            <span className="text-lg font-semibold text-blue-600">₹{product.price.toFixed(2)}</span>
+            <span className="text-lg font-light">₹{product.price.toFixed(2)}</span>
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Product Image */}
-          <div className="h-64 md:h-80 bg-gray-100 rounded-lg overflow-hidden">
+          <div className="h-64 md:h-80 bg-gray-50 overflow-hidden">
             {product.images && product.images.length > 0 ? (
               <img
                 src={product.images[0]}
@@ -94,78 +96,89 @@ export default function ProductQuickView({ product, open, onOpenChange }: Produc
                 className="h-full w-full object-contain"
               />
             ) : (
-              <div className="h-full w-full flex items-center justify-center bg-gray-200">
-                <span className="text-gray-400">No image</span>
+              <div className="h-full w-full flex items-center justify-center bg-gray-50">
+                <span className="text-gray-400 text-sm">No image</span>
               </div>
             )}
           </div>
 
           {/* Product Details */}
-          <div className="flex flex-col space-y-4">
+          <div className="space-y-6">
             <div>
-              <h3 className="font-medium text-sm text-gray-500">Description</h3>
-              <p className="text-gray-700 line-clamp-3">{product.description}</p>
+              <h3 className="text-sm font-medium text-gray-900">Description</h3>
+              <p className="mt-2 text-sm text-gray-500">{product.description}</p>
             </div>
 
-            {product.sizes && product.sizes.length > 0 && (
-              <div>
-                <h3 className="font-medium text-sm text-gray-500 mb-2">Size</h3>
+            {/* Size Selection */}
+            <div>
+              <h3 className="text-sm font-medium text-gray-900 mb-2">Select Size</h3>
+              {product.sizes && product.sizes.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {product.sizes.map((size) => (
                     <button
                       key={size}
                       onClick={() => setSelectedSize(size)}
-                      className={`px-3 py-1 border rounded-md text-sm ${
-                        selectedSize === size
-                          ? "bg-blue-600 text-white border-blue-600"
-                          : "border-gray-300 hover:border-blue-400"
+                      className={`px-4 py-2 border transition-colors duration-200 ${
+                        selectedSize === size 
+                          ? 'bg-black text-white border-black' 
+                          : 'border-gray-100 hover:border-black'
                       }`}
                     >
                       {size}
                     </button>
                   ))}
                 </div>
-              </div>
-            )}
+              ) : (
+                <p className="text-sm text-gray-500">One Size</p>
+              )}
+            </div>
 
+            {/* Quantity Selection */}
             <div>
-              <h3 className="font-medium text-sm text-gray-500 mb-2">Quantity</h3>
+              <h3 className="text-sm font-medium text-gray-900 mb-2">Quantity</h3>
               <div className="flex items-center">
                 <button
                   onClick={decreaseQuantity}
-                  className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded-l"
+                  className="w-10 h-10 flex items-center justify-center border border-gray-100 hover:border-black transition-colors duration-200"
                 >
                   -
                 </button>
-                <div className="w-12 h-8 flex items-center justify-center border-t border-b border-gray-300">
+                <div className="w-16 h-10 flex items-center justify-center border-t border-b border-gray-100">
                   {quantity}
                 </div>
                 <button
                   onClick={increaseQuantity}
-                  className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded-r"
+                  className="w-10 h-10 flex items-center justify-center border border-gray-100 hover:border-black transition-colors duration-200"
                 >
                   +
                 </button>
               </div>
             </div>
 
-            <div className="pt-4 mt-auto space-y-2">
-              <Button 
-                onClick={handleAddToCart}
-                disabled={!product.in_stock}
-                className="w-full"
-              >
-                {product.in_stock ? "Add to Cart" : "Out of Stock"}
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                onClick={viewFullDetails}
-                className="w-full"
-              >
-                View Full Details
-              </Button>
-            </div>
+            {/* Add to Cart Button */}
+            <Button
+              onClick={handleAddToCart}
+              disabled={!product.in_stock}
+              className={`w-full py-3 px-6 font-light text-white transition-colors duration-200 ${
+                product.in_stock 
+                  ? 'bg-black hover:bg-white hover:text-black border border-black' 
+                  : 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-100'
+              }`}
+            >
+              {product.in_stock ? 'Add to Cart' : 'Out of Stock'}
+            </Button>
+
+            {!product.in_stock && (
+              <p className="text-gray-500 text-center text-sm">This product is currently out of stock.</p>
+            )}
+
+            <Button
+              variant="outline"
+              onClick={viewFullDetails}
+              className="w-full border-gray-100 text-gray-500 hover:border-black hover:text-black"
+            >
+              View Full Details
+            </Button>
           </div>
         </div>
       </DialogContent>

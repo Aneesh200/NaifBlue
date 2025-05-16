@@ -17,13 +17,25 @@ interface OrderItem {
   product_variant?: string;
 }
 
+interface ShippingAddress {
+  city: string;
+  name: string;
+  email: string;
+  phone: string;
+  state: string;
+  country: string;
+  postal_code: string;
+  address_line1: string;
+  address_line2?: string;
+}
+
 interface Order {
   id: string;
   user_id: string;
   created_at: string;
   status: string;
   total_amount: number;
-  shipping_address: string;
+  shipping_address: ShippingAddress;
   payment_method: string;
   tracking_number?: string;
   estimated_delivery?: string;
@@ -102,6 +114,21 @@ export default function OrderDetailPage() {
     });
   };
 
+  // Format address
+  const formatAddress = (address: ShippingAddress) => {
+    return (
+      <div className="text-gray-500">
+        <p>{address.name}</p>
+        <p>{address.address_line1}</p>
+        {address.address_line2 && <p>{address.address_line2}</p>}
+        <p>{address.city}, {address.state} {address.postal_code}</p>
+        <p>{address.country}</p>
+        <p className="mt-2">Phone: {address.phone}</p>
+        <p>Email: {address.email}</p>
+      </div>
+    );
+  };
+
   // Get order status components
   const getOrderStatusStep = (status: string) => {
     const allStatuses = ['pending', 'processing', 'shipped', 'delivered', 'completed'];
@@ -115,8 +142,8 @@ export default function OrderDetailPage() {
               <div 
                 className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${
                   index <= currentIndex 
-                    ? 'bg-blue-500 border-blue-500 text-white' 
-                    : 'bg-white border-gray-300 text-gray-300'
+                    ? 'bg-black border-black text-white' 
+                    : 'bg-white border-gray-100 text-gray-300'
                 }`}
               >
                 {index < currentIndex ? (
@@ -125,8 +152,8 @@ export default function OrderDetailPage() {
                   <span>{index + 1}</span>
                 )}
               </div>
-              <p className={`mt-2 text-sm font-medium ${
-                index <= currentIndex ? 'text-blue-500' : 'text-gray-400'
+              <p className={`mt-2 text-sm font-light ${
+                index <= currentIndex ? 'text-black' : 'text-gray-400'
               }`}>
                 {step.charAt(0).toUpperCase() + step.slice(1)}
               </p>
@@ -134,9 +161,9 @@ export default function OrderDetailPage() {
           ))}
         </div>
         <div className="mt-2 relative">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gray-200">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gray-100">
             <div 
-              className="absolute top-0 left-0 h-full bg-blue-500"
+              className="absolute top-0 left-0 h-full bg-black"
               style={{ 
                 width: `${Math.min(100, (currentIndex / (allStatuses.length - 1)) * 100)}%`
               }}
@@ -150,23 +177,25 @@ export default function OrderDetailPage() {
   // Status badges styling
   const getStatusStyle = (status: string) => {
     const styles = {
-      pending: 'bg-yellow-100 text-yellow-800',
-      processing: 'bg-blue-100 text-blue-800',
-      shipped: 'bg-indigo-100 text-indigo-800',
-      delivered: 'bg-green-100 text-green-800',
-      completed: 'bg-green-100 text-green-800',
-      cancelled: 'bg-red-100 text-red-800',
+      pending: 'bg-gray-50 text-gray-500 border border-gray-100',
+      processing: 'bg-gray-50 text-gray-500 border border-gray-100',
+      shipped: 'bg-gray-50 text-gray-500 border border-gray-100',
+      delivered: 'bg-gray-50 text-gray-500 border border-gray-100',
+      completed: 'bg-gray-50 text-gray-500 border border-gray-100',
+      cancelled: 'bg-gray-50 text-gray-500 border border-gray-100',
     };
     
-    return styles[status.toLowerCase() as keyof typeof styles] || 'bg-gray-100 text-gray-800';
+    return styles[status.toLowerCase() as keyof typeof styles] || 'bg-gray-50 text-gray-500 border border-gray-100';
   };
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-12 text-center">
-        <div className="flex flex-col items-center justify-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-          <p className="mt-4 text-gray-600">Loading order details...</p>
+      <div className="container mx-auto px-4 py-12">
+        <div className="bg-white border border-gray-100 p-6 hover:border-black transition-colors duration-300">
+          <div className="text-center py-12">
+            <div className="w-16 h-16 border-4 border-black border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="mt-4 text-gray-500">Loading order details...</p>
+          </div>
         </div>
       </div>
     );
@@ -175,20 +204,18 @@ export default function OrderDetailPage() {
   if (error) {
     return (
       <div className="container mx-auto px-4 py-12">
-        <div className="max-w-4xl mx-auto bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-          <div className="flex">
+        <div className="bg-white border border-gray-100 p-6 hover:border-black transition-colors duration-300">
+          <div className="flex items-center text-gray-500 mb-4">
             <AlertCircle className="h-5 w-5 mr-2" />
             <span>{error}</span>
           </div>
-          <div className="mt-4">
-            <Link 
-              href="/orders" 
-              className="inline-flex items-center text-blue-600 hover:underline"
-            >
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              Back to Orders
-            </Link>
-          </div>
+          <Link 
+            href="/orders" 
+            className="inline-flex items-center text-gray-500 hover:text-black font-light"
+          >
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Back to Orders
+          </Link>
         </div>
       </div>
     );
@@ -197,17 +224,19 @@ export default function OrderDetailPage() {
   if (!order) {
     return (
       <div className="container mx-auto px-4 py-12">
-        <div className="max-w-4xl mx-auto text-center">
-          <Package className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-          <h2 className="text-2xl font-bold text-gray-700 mb-4">Order Not Found</h2>
-          <p className="text-gray-500 mb-8">We couldn't find the order you're looking for.</p>
-          <Link 
-            href="/orders" 
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Orders
-          </Link>
+        <div className="bg-white border border-gray-100 p-6 hover:border-black transition-colors duration-300">
+          <div className="text-center py-12">
+            <Package className="h-16 w-16 mx-auto text-gray-400 mb-4" />
+            <h2 className="text-2xl font-light text-gray-500 mb-2">Order Not Found</h2>
+            <p className="text-gray-500 mb-8">We couldn't find the order you're looking for.</p>
+            <Link 
+              href="/orders" 
+              className="inline-flex items-center px-4 py-2 bg-black text-white hover:bg-white hover:text-black border border-black transition-colors duration-200"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Orders
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -215,53 +244,53 @@ export default function OrderDetailPage() {
 
   return (
     <div className="container mx-auto px-4 py-12">
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-8">
-          <Link 
-            href="/orders" 
-            className="inline-flex items-center text-blue-600 hover:underline"
-          >
-            <ArrowLeft className="h-4 w-4 mr-1" />
-            Back to Orders
-          </Link>
-        </div>
-        
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+      <div className="mb-8">
+        <Link 
+          href="/orders" 
+          className="inline-flex items-center text-gray-500 hover:text-black font-light"
+        >
+          <ArrowLeft className="h-4 w-4 mr-1" />
+          Back to Orders
+        </Link>
+      </div>
+      
+      <div className="grid grid-cols-1 gap-6">
+        <div className="bg-white border border-gray-100 p-6 hover:border-black transition-colors duration-300">
           <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold">Order #{order.id.substring(0, 8)}</h1>
-            <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getStatusStyle(order.status)}`}>
+            <h1 className="text-2xl font-light text-gray-900">Order #{order.id.substring(0, 8)}</h1>
+            <span className={`px-3 py-1 text-xs font-light ${getStatusStyle(order.status)}`}>
               {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
             </span>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-1">Order Date</h3>
-              <p className="font-medium">{formatDate(order.created_at)}</p>
+              <h3 className="text-sm font-light text-gray-500 mb-1">Order Date</h3>
+              <p className="text-gray-900">{formatDate(order.created_at)}</p>
             </div>
             <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-1">Total Amount</h3>
-              <p className="font-medium text-lg">₹{order.total_amount.toFixed(2)}</p>
+              <h3 className="text-sm font-light text-gray-500 mb-1">Total Amount</h3>
+              <p className="text-gray-900">₹{order.total_amount.toFixed(2)}</p>
             </div>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-1">Shipping Address</h3>
-              <p className="whitespace-pre-line">{order.shipping_address || 'No address provided'}</p>
+              <h3 className="text-sm font-light text-gray-500 mb-1">Shipping Address</h3>
+              {formatAddress(order.shipping_address)}
             </div>
             <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-1">Payment Method</h3>
-              <p>{order.payment_method || 'Not specified'}</p>
+              <h3 className="text-sm font-light text-gray-500 mb-1">Payment Method</h3>
+              <p className="text-gray-900">{order.payment_method || 'Not specified'}</p>
             </div>
           </div>
           
           {order.tracking_number && (
             <div className="mb-6">
-              <h3 className="text-sm font-medium text-gray-500 mb-1">Tracking Number</h3>
-              <div className="flex items-center">
-                <Truck className="h-5 w-5 text-blue-500 mr-2" />
-                <span className="font-medium">{order.tracking_number}</span>
+              <h3 className="text-sm font-light text-gray-500 mb-1">Tracking Number</h3>
+              <div className="flex items-center text-gray-900">
+                <Truck className="h-5 w-5 mr-2" />
+                <span>{order.tracking_number}</span>
               </div>
               {order.estimated_delivery && (
                 <p className="text-sm text-gray-500 mt-1">
@@ -277,16 +306,16 @@ export default function OrderDetailPage() {
         </div>
         
         {/* Order Items */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold mb-6">Order Items</h2>
+        <div className="bg-white border border-gray-100 p-6 hover:border-black transition-colors duration-300">
+          <h2 className="text-xl font-light text-gray-900 mb-6">Order Items</h2>
           
           {orderItems.length === 0 ? (
             <p className="text-gray-500">No items found for this order.</p>
           ) : (
-            <div className="divide-y divide-gray-200">
+            <div className="space-y-6">
               {orderItems.map((item) => (
-                <div key={item.id} className="py-6 flex flex-col sm:flex-row">
-                  <div className="sm:w-24 h-24 bg-gray-100 rounded overflow-hidden mb-4 sm:mb-0 flex-shrink-0">
+                <div key={item.id} className="flex flex-col sm:flex-row">
+                  <div className="sm:w-24 h-24 bg-gray-50 rounded overflow-hidden mb-4 sm:mb-0 flex-shrink-0">
                     {item.product_image_url ? (
                       <img 
                         src={item.product_image_url} 
@@ -294,7 +323,7 @@ export default function OrderDetailPage() {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                      <div className="w-full h-full flex items-center justify-center">
                         <Package className="h-12 w-12 text-gray-400" />
                       </div>
                     )}
@@ -302,18 +331,18 @@ export default function OrderDetailPage() {
                   <div className="sm:ml-6 flex-1">
                     <div className="flex justify-between mb-2">
                       <div>
-                        <h3 className="text-lg font-medium">{item.product_name}</h3>
+                        <h3 className="text-lg font-light text-gray-900">{item.product_name}</h3>
                         {item.product_variant && (
                           <p className="text-sm text-gray-500 mt-1">Variant: {item.product_variant}</p>
                         )}
                         <p className="text-sm text-gray-500 mt-1">Quantity: {item.quantity}</p>
                       </div>
-                      <p className="font-medium">₹{(item.price * item.quantity).toFixed(2)}</p>
+                      <p className="text-gray-900">₹{(item.price * item.quantity).toFixed(2)}</p>
                     </div>
                     <div className="mt-2">
                       <Link 
                         href={`/products/${item.product_id}`}
-                        className="text-sm text-blue-600 hover:underline"
+                        className="text-sm text-gray-500 hover:text-black font-light"
                       >
                         View Product
                       </Link>
@@ -324,22 +353,22 @@ export default function OrderDetailPage() {
             </div>
           )}
           
-          <div className="mt-8 pt-6 border-t">
-            <div className="flex justify-between mb-2">
-              <span className="text-gray-600">Subtotal</span>
+          <div className="mt-8 pt-6 border-t border-gray-100">
+            <div className="flex justify-between mb-2 text-gray-500">
+              <span>Subtotal</span>
               <span>₹{order.total_amount.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between mb-2">
-              <span className="text-gray-600">Shipping</span>
+            <div className="flex justify-between mb-2 text-gray-500">
+              <span>Shipping</span>
               <span>₹0.00</span>
             </div>
-            <div className="flex justify-between mb-2">
-              <span className="text-gray-600">Tax</span>
+            <div className="flex justify-between mb-2 text-gray-500">
+              <span>Tax</span>
               <span>Included</span>
             </div>
-            <div className="flex justify-between pt-2 border-t mt-2">
-              <span className="font-semibold">Total</span>
-              <span className="font-semibold">₹{order.total_amount.toFixed(2)}</span>
+            <div className="flex justify-between pt-2 border-t border-gray-100 mt-2 text-gray-900">
+              <span className="font-light">Total</span>
+              <span className="font-light">₹{order.total_amount.toFixed(2)}</span>
             </div>
           </div>
         </div>

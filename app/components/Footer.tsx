@@ -4,20 +4,20 @@ export default function Footer() {
   const currentYear = new Date().getFullYear();
   
   return (
-    <footer className="bg-gray-900 text-white">
+    <footer className="bg-white border-t border-gray-100">
       <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
-            <h3 className="text-lg font-semibold mb-4">Naif Bleu</h3>
-            <p className="text-gray-400 mb-4">
+            <h3 className="text-lg font-light mb-4">Naif Bleu</h3>
+            <p className="text-gray-500 mb-4 text-sm">
               Quality school uniforms for students across India. Trusted by
               parents and schools for over a decade.
             </p>
             <div className="flex space-x-4">
-              <a href="#" className="text-gray-400 hover:text-white">
+              <a href="#" className="text-gray-400 hover:text-black">
                 <span className="sr-only">Facebook</span>
                 <svg
-                  className="h-6 w-6"
+                  className="h-5 w-5"
                   fill="currentColor"
                   viewBox="0 0 24 24"
                   aria-hidden="true"
@@ -29,10 +29,10 @@ export default function Footer() {
                   />
                 </svg>
               </a>
-              <a href="#" className="text-gray-400 hover:text-white">
+              <a href="#" className="text-gray-400 hover:text-black">
                 <span className="sr-only">Instagram</span>
                 <svg
-                  className="h-6 w-6"
+                  className="h-5 w-5"
                   fill="currentColor"
                   viewBox="0 0 24 24"
                   aria-hidden="true"
@@ -44,10 +44,10 @@ export default function Footer() {
                   />
                 </svg>
               </a>
-              <a href="#" className="text-gray-400 hover:text-white">
+              <a href="#" className="text-gray-400 hover:text-black">
                 <span className="sr-only">Twitter</span>
                 <svg
-                  className="h-6 w-6"
+                  className="h-5 w-5"
                   fill="currentColor"
                   viewBox="0 0 24 24"
                   aria-hidden="true"
@@ -59,12 +59,12 @@ export default function Footer() {
           </div>
           
           <div>
-            <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
+            <h3 className="text-lg font-light mb-4">Quick Links</h3>
             <ul className="space-y-2">
               <li>
                 <Link
                   href="/"
-                  className="text-gray-400 hover:text-white"
+                  className="text-gray-500 hover:text-black text-sm"
                 >
                   Home
                 </Link>
@@ -72,7 +72,7 @@ export default function Footer() {
               <li>
                 <Link
                   href="/products"
-                  className="text-gray-400 hover:text-white"
+                  className="text-gray-500 hover:text-black text-sm"
                 >
                   Products
                 </Link>
@@ -80,7 +80,7 @@ export default function Footer() {
               <li>
                 <Link
                   href="/schools"
-                  className="text-gray-400 hover:text-white"
+                  className="text-gray-500 hover:text-black text-sm"
                 >
                   Schools
                 </Link>
@@ -88,7 +88,7 @@ export default function Footer() {
               <li>
                 <Link
                   href="/contact"
-                  className="text-gray-400 hover:text-white"
+                  className="text-gray-500 hover:text-black text-sm"
                 >
                   Contact
                 </Link>
@@ -97,20 +97,20 @@ export default function Footer() {
           </div>
           
           <div>
-            <h3 className="text-lg font-semibold mb-4">Customer Service</h3>
+            <h3 className="text-lg font-light mb-4">Customer Service</h3>
             <ul className="space-y-2">
               <li>
                 <Link
                   href="/faq"
-                  className="text-gray-400 hover:text-white"
+                  className="text-gray-500 hover:text-black text-sm"
                 >
                   FAQ
                 </Link>
               </li>
               <li>
                 <Link
-                  href="/shipping"
-                  className="text-gray-400 hover:text-white"
+                  href="/shipping-returns"
+                  className="text-gray-500 hover:text-black text-sm"
                 >
                   Shipping & Returns
                 </Link>
@@ -118,7 +118,7 @@ export default function Footer() {
               <li>
                 <Link
                   href="/size-guide"
-                  className="text-gray-400 hover:text-white"
+                  className="text-gray-500 hover:text-black text-sm"
                 >
                   Size Guide
                 </Link>
@@ -126,7 +126,7 @@ export default function Footer() {
               <li>
                 <Link
                   href="/terms"
-                  className="text-gray-400 hover:text-white"
+                  className="text-gray-500 hover:text-black text-sm"
                 >
                   Terms & Conditions
                 </Link>
@@ -134,7 +134,7 @@ export default function Footer() {
               <li>
                 <Link
                   href="/privacy"
-                  className="text-gray-400 hover:text-white"
+                  className="text-gray-500 hover:text-black text-sm"
                 >
                   Privacy Policy
                 </Link>
@@ -143,18 +143,18 @@ export default function Footer() {
           </div>
           
           <div>
-            <h3 className="text-lg font-semibold mb-4">Contact Us</h3>
-            <address className="not-italic text-gray-400">
+            <h3 className="text-lg font-light mb-4">Contact Us</h3>
+            <address className="not-italic text-gray-500 text-sm">
               <p className="mb-2">123 School Street</p>
               <p className="mb-2">Mumbai, Maharashtra 400001</p>
               <p className="mb-2">India</p>
               <p className="mb-2">
-                <a href="tel:+919876543210" className="hover:text-white">
+                <a href="tel:+919876543210" className="hover:text-black">
                   +91 987 654 3210
                 </a>
               </p>
               <p>
-                <a href="mailto:info@naifbleu.com" className="hover:text-white">
+                <a href="mailto:info@naifbleu.com" className="hover:text-black">
                   info@naifbleu.com
                 </a>
               </p>
@@ -162,8 +162,8 @@ export default function Footer() {
           </div>
         </div>
         
-        <div className="mt-8 pt-8 border-t border-gray-700 text-center">
-          <p className="text-gray-400">
+        <div className="mt-8 pt-8 border-t border-gray-100 text-center">
+          <p className="text-gray-500 text-sm">
             &copy; {currentYear} Naif Bleu. All rights reserved.
           </p>
         </div>

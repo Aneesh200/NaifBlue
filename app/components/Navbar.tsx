@@ -14,7 +14,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+  SheetTitle, // Import SheetTitle
+} from "@/components/ui/sheet";
 import { ShoppingCart, Menu, User } from "lucide-react";
 import { useCartStore } from "@/lib/store";
 
@@ -24,18 +29,14 @@ export default function Navbar() {
   const pathname = usePathname();
   const [userRole, setUserRole] = useState<string | null>(null);
   const { itemCount } = useCartStore();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Update cart count from local storage
   useEffect(() => {
-    // Update cart count directly from the itemCount function
     setCartCount(itemCount());
-    
-    // Set up interval to check for changes
     const interval = setInterval(() => {
       setCartCount(itemCount());
     }, 500);
-    
-    // Cleanup
     return () => clearInterval(interval);
   }, [itemCount]);
 
@@ -47,62 +48,35 @@ export default function Navbar() {
         return;
       }
 
-      // Debug current user state
-      console.log('Current auth user:', {
-        id: user.id,
-        email: user.email,
-        hasToken: !!user.access_token,
-      });
-
-      // Add small delay to ensure auth cookies are set
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
       try {
-        // Configure headers with the token if available
         const headers: HeadersInit = {
           'Content-Type': 'application/json',
         };
-        
-        // Add Authorization header if we have a token
+
         if (user.access_token) {
           headers['Authorization'] = `Bearer ${user.access_token}`;
-          console.log('Adding auth token to request headers');
         }
-        
-        // Common request options
+
         const requestOptions = {
-          credentials: 'include' as RequestCredentials, // Make sure cookies are sent
+          credentials: 'include' as RequestCredentials,
           headers
         };
-        
-        // Try the users/role endpoint
-        console.log('Fetching user role...');
+
         let response = await fetch('/api/users/role', requestOptions);
-        
-        console.log('Role API response status:', response.status);
-        
-        // If that fails, try the fallback endpoint
+
         if (!response.ok) {
-          console.log('Primary role API failed, trying fallback');
           response = await fetch('/api/user/role', requestOptions);
-          console.log('Fallback API response status:', response.status);
         }
-        
-        // If either endpoint worked, get the data
+
         if (response.ok) {
           const data = await response.json();
-          console.log('Role data:', data);
           setUserRole(data.role);
         } else {
-          console.error('Failed to fetch user role, status:', response.status);
-          // Don't set role to null if we already have one - this prevents UI flashing
           if (!userRole) {
             setUserRole(null);
           }
         }
       } catch (error) {
-        console.error('Error fetching user role:', error);
-        // Don't set role to null if we already have one
         if (!userRole) {
           setUserRole(null);
         }
@@ -113,25 +87,30 @@ export default function Navbar() {
   }, [user, userRole]);
 
   const getNavLinkClass = (path: string) => {
-    const isActive = 
-      path === pathname || 
+    const isActive =
+      path === pathname ||
       (path !== '/' && pathname.startsWith(path));
-    
-    return `py-2 text-sm font-medium transition-colors hover:text-primary ${
-      isActive ? 'text-black border-b-2 border-blue-600' : 'text-gray-500'
+
+    return `py-2 text-sm font-light transition-colors hover:text-black ${
+      isActive ? 'text-black border-b-2 border-black' : 'text-gray-500'
     }`;
   };
 
+  // Close mobile menu when route changes
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
+
   return (
-    <header className="bg-white border-b sticky top-0 z-40">
-      <div className="container flex items-center justify-between h-16 px-4 md:px-6">
+    <header className="bg-white border-b border-gray-200 sticky top-0 z-40 w-full">
+      <div className="container mx-auto flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
         {/* Logo */}
-        <Link href="/" className="font-bold text-xl text-blue-600">
+        <Link href="/" className="font-bold text-xl text-black">
           PgUniform
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-6 text-sm">
+        <nav className="hidden md:flex items-center gap-6 lg:gap-8 text-sm">
           <Link href="/" className={getNavLinkClass('/')}>
             Home
           </Link>
@@ -149,132 +128,135 @@ export default function Navbar() {
           </Link>
         </nav>
 
-        {/* Desktop Actions */}
-        <div className="hidden md:flex items-center gap-4">
+        {/* Mobile Actions and Menu Trigger */}
+        <div className="md:hidden flex items-center gap-3">
           <Link href="/checkout/cart" className="relative">
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" className="hover:bg-gray-100">
               <ShoppingCart className="h-5 w-5" />
               {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 bg-black text-white text-xs font-light rounded-full h-5 w-5 flex items-center justify-center">
                   {cartCount}
                 </span>
               )}
               <span className="sr-only">Cart</span>
             </Button>
           </Link>
+          <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="hover:bg-gray-100">
+                <Menu className="h-6 w-6" />
+                <span className="sr-only">Toggle menu</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="flex flex-col border-l border-gray-200 w-full sm:max-w-sm">
+              <SheetTitle className="sr-only">Mobile Menu</SheetTitle>
+              <div className="px-4 py-6">
+                <Link href="/" className="font-bold text-xl text-black mb-6 block">
+                  PgUniform
+                </Link>
+                <nav className="flex flex-col gap-4 mt-4">
+                  <Link href="/" className="text-lg font-light py-2">
+                    Home
+                  </Link>
+                  <Link href="/products" className="text-lg font-light py-2">
+                    Products
+                  </Link>
+                  <Link href="/about" className="text-lg font-light py-2">
+                    About Us
+                  </Link>
+                  <Link href="/schools" className="text-lg font-light py-2">
+                    Schools
+                  </Link>
+                  <Link href="/contact" className="text-lg font-light py-2">
+                    Contact
+                  </Link>
+                </nav>
+              </div>
+              <div className="mt-auto px-4 py-6">
+                <div className="flex flex-col gap-2 mt-6">
+                  {user ? (
+                    <>
+                      <Link href="/profile" onClick={() => setIsMobileMenuOpen(false)}>
+                        <Button variant="outline" className="w-full justify-start border-black text-black hover:bg-black hover:text-white font-light">
+                          <User className="mr-2 h-4 w-4" />
+                          Profile
+                        </Button>
+                      </Link>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start border-black text-black hover:bg-black hover:text-white font-light"
+                        onClick={() => {
+                          signOut();
+                          setIsMobileMenuOpen(false);
+                        }}
+                      >
+                        Log out
+                      </Button>
+                    </>
+                  ) : (
+                    <Link href="/sign-in" onClick={() => setIsMobileMenuOpen(false)}>
+                      <Button variant="outline" className="w-full justify-start border-black text-black hover:bg-black hover:text-white font-light">
+                        <User className="mr-2 h-4 w-4" />
+                        Sign in
+                      </Button>
+                    </Link>
+                  )}
+                </div>
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
 
+        {/* Desktop Actions */}
+        <div className="hidden md:flex items-center gap-3 lg:gap-4">
+          {/* Cart icon is already here for desktop */}
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full">
+                <Button variant="ghost" size="icon" className="rounded-full hover:bg-gray-100">
                   <Avatar className="h-8 w-8">
                     <AvatarImage src={user.user_metadata?.avatar_url} alt={user.email || ''} />
-                    <AvatarFallback>{user.email?.charAt(0).toUpperCase()}</AvatarFallback>
+                    <AvatarFallback className="bg-black text-white">{user.email?.charAt(0).toUpperCase()}</AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel className="font-normal">
+              <DropdownMenuContent align="end" className="w-56 border border-gray-200">
+                <DropdownMenuLabel className="font-light">
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">{user.user_metadata?.full_name || user.email}</p>
-                    <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                    <p className="text-sm font-light leading-none">{user.user_metadata?.full_name || user.email}</p>
+                    <p className="text-xs leading-none text-gray-500">{user.email}</p>
                   </div>
                 </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
+                <DropdownMenuSeparator className="bg-gray-200" />
+                <DropdownMenuItem asChild className="font-light">
                   <Link href="/profile">Profile</Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
+                <DropdownMenuItem asChild className="font-light">
                   <Link href="/orders">Orders</Link>
                 </DropdownMenuItem>
                 {userRole === 'admin' && (
-                  <DropdownMenuItem asChild>
+                  <DropdownMenuItem asChild className="font-light">
                     <Link href="/admin">Admin Dashboard</Link>
                   </DropdownMenuItem>
                 )}
                 {userRole === 'warehouse' && (
-                  <DropdownMenuItem asChild>
+                  <DropdownMenuItem asChild className="font-light">
                     <Link href="/warehouse">Warehouse Dashboard</Link>
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => signOut()}>
+                <DropdownMenuSeparator className="bg-gray-200" />
+                <DropdownMenuItem onClick={() => signOut()} className="font-light">
                   Log out
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Button asChild variant="default">
+            <Button asChild variant="outline" className="border-black text-black hover:bg-black hover:text-white font-light text-sm">
               <Link href="/sign-in">Sign in</Link>
             </Button>
           )}
         </div>
-
-        {/* Mobile Menu */}
-        <Sheet>
-          <SheetTrigger asChild className="md:hidden">
-            <Button variant="ghost" size="icon">
-              <Menu className="h-6 w-6" />
-              <span className="sr-only">Toggle menu</span>
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="right" className="flex flex-col">
-            <div className="px-2">
-              <Link href="/" className="font-bold text-xl text-blue-600 mb-6 block">
-                Naif Bleu
-              </Link>
-              <nav className="flex flex-col gap-4 mt-4">
-                <Link href="/" className="text-lg font-medium py-2">
-                  Home
-                </Link>
-                <Link href="/products" className="text-lg font-medium py-2">
-                  Products
-                </Link>
-                <Link href="/about" className="text-lg font-medium py-2">
-                  About Us
-                </Link>
-                <Link href="/schools" className="text-lg font-medium py-2">
-                  Schools
-                </Link>
-                <Link href="/contact" className="text-lg font-medium py-2">
-                  Contact
-                </Link>
-              </nav>
-            </div>
-            <div className="mt-auto px-2 pb-8">
-              <div className="flex flex-col gap-2 mt-6">
-                <Link href="/checkout/cart">
-                  <Button variant="outline" className="w-full justify-start">
-                    <ShoppingCart className="mr-2 h-4 w-4" />
-                    Cart {cartCount > 0 && `(${cartCount})`}
-                  </Button>
-                </Link>
-                {user ? (
-                  <>
-                    <Link href="/profile">
-                      <Button variant="outline" className="w-full justify-start">
-                        <User className="mr-2 h-4 w-4" />
-                        Profile
-                      </Button>
-                    </Link>
-                    <Button 
-                      variant="destructive" 
-                      className="w-full" 
-                      onClick={() => signOut()}
-                    >
-                      Log out
-                    </Button>
-                  </>
-                ) : (
-                  <Button asChild className="w-full">
-                    <Link href="/sign-in">Sign in</Link>
-                  </Button>
-                )}
-              </div>
-            </div>
-          </SheetContent>
-        </Sheet>
       </div>
     </header>
   );
-} 
+}
