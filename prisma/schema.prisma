@@ -11,43 +11,44 @@ datasource db {
 }
 
 model User {
-  id               String     @id @default(uuid())
-  email            String     @unique
-  name             String?
-  phone            String?
-  auth_type        String     @default("email") // "email", "google", etc.
-  role             String     @default("user") // "user", "admin", "manager", "warehouse"
-  addresses        Address[]
-  default_address  Address?   @relation("DefaultAddress", fields: [default_address_id], references: [id])
-  default_address_id String?  @unique
-  orders           Order[]
-  wishlist         Wishlist?
-  cart_items       CartItem[]
-  created_at       DateTime   @default(now())
-  updated_at       DateTime   @updatedAt
+  id                 String     @id @default(uuid())
+  email              String     @unique
+  name               String?
+  phone              String?
+  auth_type          String     @default("email") // "email", "google", etc.
+  role               String     @default("user") // "user", "admin", "manager", "warehouse"
+  addresses          Address[]
+  default_address    Address?   @relation("DefaultAddress", fields: [default_address_id], references: [id])
+  default_address_id String?    @unique
+  orders             Order[]
+  wishlist           Wishlist?
+  cart_items         CartItem[]
+  created_at         DateTime   @default(now())
+  updated_at         DateTime   @updatedAt
 
   @@map("users")
 }
 
 model Product {
-  id           String         @id @default(uuid())
-  name         String
-  description  String?        @db.Text
-  price        Float
-  images       String[]       @default([])
-  in_stock     Boolean        @default(true)
-  created_at   DateTime       @default(now())
-  updated_at   DateTime       @updatedAt
-  
+  id              String   @id @default(uuid())
+  name            String
+  description     String?  @db.Text
+  price           Float
+  images          String[] @default([])
+  in_stock        Boolean  @default(true)
+  inventory_count Int      @default(100)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
   // Relations
-  school_id    String?
-  school       School?        @relation(fields: [school_id], references: [id])
-  category_id  String?
-  category     Category?      @relation(fields: [category_id], references: [id])
-  product_sizes ProductSize[]
-  cart_items   CartItem[]
+  school_id      String?
+  school         School?        @relation(fields: [school_id], references: [id])
+  category_id    String?
+  category       Category?      @relation(fields: [category_id], references: [id])
+  product_sizes  ProductSize[]
+  cart_items     CartItem[]
   wishlist_items WishlistItem[]
-  order_items  OrderItem[]
+  order_items    OrderItem[]
 
   @@index([category_id])
   @@index([school_id])
@@ -55,16 +56,16 @@ model Product {
 }
 
 model CartItem {
-  id           String   @id @default(uuid())
-  user_id      String
-  user         User     @relation(fields: [user_id], references: [id])
-  product_id   String
-  product      Product  @relation(fields: [product_id], references: [id])
-  quantity     Int      @default(1)
+  id              String      @id @default(uuid())
+  user_id         String
+  user            User        @relation(fields: [user_id], references: [id])
+  product_id      String
+  product         Product     @relation(fields: [product_id], references: [id])
+  quantity        Int         @default(1)
   product_size_id String
-  product_size ProductSize @relation(fields: [product_size_id], references: [id])
-  created_at   DateTime @default(now())
-  updated_at   DateTime @updatedAt
+  product_size    ProductSize @relation(fields: [product_size_id], references: [id])
+  created_at      DateTime    @default(now())
+  updated_at      DateTime    @updatedAt
 
   @@unique([user_id, product_id, product_size_id])
   @@index([user_id])
@@ -73,33 +74,33 @@ model CartItem {
 }
 
 model Order {
-  id                String        @id @default(uuid())
+  id                String           @id @default(uuid())
   user_id           String
-  user              User          @relation(fields: [user_id], references: [id])
+  user              User             @relation(fields: [user_id], references: [id])
   shipping_address  Json
   status            String
   total_amount      Float
   payment_intent_id String?
   items             OrderItem[]
   status_logs       OrderStatusLog[]
-  created_at        DateTime      @default(now())
-  updated_at        DateTime      @updatedAt
+  created_at        DateTime         @default(now())
+  updated_at        DateTime         @updatedAt
 
   @@index([user_id])
   @@map("orders")
 }
 
 model OrderItem {
-  id              String   @id @default(uuid())
+  id              String      @id @default(uuid())
   order_id        String
-  order           Order    @relation(fields: [order_id], references: [id])
+  order           Order       @relation(fields: [order_id], references: [id])
   product_id      String
-  product         Product  @relation(fields: [product_id], references: [id])
+  product         Product     @relation(fields: [product_id], references: [id])
   price           Float
   quantity        Int
   product_size_id String
   product_size    ProductSize @relation(fields: [product_size_id], references: [id])
-  created_at      DateTime @default(now())
+  created_at      DateTime    @default(now())
 
   @@index([order_id])
   @@index([product_id])
@@ -133,7 +134,7 @@ model Address {
   is_default    Boolean  @default(false)
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
-  
+
   // Relation for default address
   default_for_user User? @relation("DefaultAddress")
 
@@ -152,16 +153,16 @@ model Category {
 }
 
 model ProductSize {
-  id           String      @id @default(uuid())
-  product_id   String
-  product      Product     @relation(fields: [product_id], references: [id])
-  size         String      // XS, S, M, L, XL, etc.
-  age_range    String?     // e.g. "6-7 years"
-  stock        Int         @default(0)
-  cart_items   CartItem[]
-  order_items  OrderItem[]
-  created_at   DateTime    @default(now())
-  updated_at   DateTime    @updatedAt
+  id          String      @id @default(uuid())
+  product_id  String
+  product     Product     @relation(fields: [product_id], references: [id])
+  size        String // XS, S, M, L, XL, etc.
+  age_range   String? // e.g. "6-7 years"
+  stock       Int         @default(0)
+  cart_items  CartItem[]
+  order_items OrderItem[]
+  created_at  DateTime    @default(now())
+  updated_at  DateTime    @updatedAt
 
   @@unique([product_id, size])
   @@index([product_id])
@@ -169,12 +170,12 @@ model ProductSize {
 }
 
 model Wishlist {
-  id          String          @id @default(uuid())
-  user_id     String          @unique
-  user        User            @relation(fields: [user_id], references: [id])
-  items       WishlistItem[]
-  created_at  DateTime        @default(now())
-  updated_at  DateTime        @updatedAt
+  id         String         @id @default(uuid())
+  user_id    String         @unique
+  user       User           @relation(fields: [user_id], references: [id])
+  items      WishlistItem[]
+  created_at DateTime       @default(now())
+  updated_at DateTime       @updatedAt
 
   @@map("wishlists")
 }
@@ -211,13 +212,13 @@ model Coupon {
 }
 
 model OrderStatusLog {
-  id          String   @id @default(uuid())
-  order_id    String
-  order       Order    @relation(fields: [order_id], references: [id])
-  status      String
-  notes       String?
-  updated_by  String
-  created_at  DateTime @default(now())
+  id         String   @id @default(uuid())
+  order_id   String
+  order      Order    @relation(fields: [order_id], references: [id])
+  status     String
+  notes      String?
+  updated_by String
+  created_at DateTime @default(now())
 
   @@index([order_id])
   @@map("order_status_logs")
