@@ -288,20 +288,14 @@ const ProductsPage = () => {
                         <div key={product.id} className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow transition-shadow duration-200">
                             {/* Image Container - Fixed aspect ratio */}
                             <div className="relative w-full pt-[75%] bg-gray-100">
-                                {product.image_url ? (
-                                    <Image
-                                        src={product.image_url}
-                                        alt={product.name}
-                                        fill
-                                        className="object-cover absolute top-0 left-0"
-                                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-                                    />
-                                ) : product.images && product.images.length > 0 ? (
+                                {product.images && product.images.length > 0 ? (
                                     <Image
                                         src={product.images[0]}
                                         alt={product.name}
-                                        fill
                                         className="object-cover absolute top-0 left-0"
+                                        width={400}
+                                        height={300}
+                                        loading="lazy"
                                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
                                     />
                                 ) : (
@@ -338,10 +332,10 @@ const ProductsPage = () => {
                                     <span className="font-semibold text-blue-600">{formatPrice(product.price)}</span>
                                     {typeof product.inventory_count === 'number' && (
                                         <span className={`text-xs px-2 py-1 rounded-full ${product.inventory_count > 10
-                                                ? 'bg-green-50 text-green-700'
-                                                : product.inventory_count > 0
-                                                    ? 'bg-yellow-50 text-yellow-700'
-                                                    : 'bg-red-50 text-red-700'
+                                            ? 'bg-green-50 text-green-700'
+                                            : product.inventory_count > 0
+                                                ? 'bg-yellow-50 text-yellow-700'
+                                                : 'bg-red-50 text-red-700'
                                             }`}>
                                             Stock: {product.inventory_count}
                                         </span>
@@ -352,7 +346,7 @@ const ProductsPage = () => {
                                 <div className="border-t pt-3 mt-2 flex justify-between items-center">
                                     <div className="flex space-x-2">
                                         <Link
-                                            href={`/dashboard/admin/products/${product.id}`}
+                                            href={`/products/${product.id}`}
                                             className="p-1.5 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition-colors"
                                             title="View Details"
                                         >

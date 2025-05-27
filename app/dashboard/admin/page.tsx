@@ -1,7 +1,7 @@
 "use client"
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
+// import Image from 'next/image'
 import { Order } from '@/lib/types'
 import { renderStatusBadge } from '@/app/components/admin/OrderStatusCard'
 
@@ -286,18 +286,16 @@ const AdminDashboard = () => {
               <div key={product.id} className="bg-white p-4 rounded-md shadow-sm hover:shadow-md transition-shadow">
                 <div className="h-32 mb-3 rounded-md relative overflow-hidden bg-gray-100">
                   {product.image_url ? (
-                    <Image
+                    <img
                       src={product.image_url} // Use image_url directly, not images array
                       alt={product.name}
-                      fill
                       className="object-cover"
                       sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
                     />
                   ) : product.images && product.images.length > 0 ? (
-                    <Image
+                    <img
                       src={product.images[0]}
                       alt={product.name}
-                      fill
                       className="object-cover"
                       sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
                     />

@@ -5,10 +5,8 @@ import { useRouter, useParams } from 'next/navigation'
 import { toast } from 'sonner'
 import {
     Save,
-    X,
     Plus,
     Trash2,
-    Upload,
     Loader2,
     ShoppingBag,
     ArrowLeft,
@@ -19,40 +17,9 @@ import {
     AlertTriangle
 } from 'lucide-react'
 import Link from 'next/link'
-import Image from 'next/image'
-
-// Define interfaces based on schema
-interface Product {
-    id: string;
-    name: string;
-    description?: string;
-    price: number;
-    images: string[];
-    in_stock: boolean;
-    inventory_count: number;
-    category_id?: string;
-    school_id?: string;
-    product_sizes: ProductSize[];
-    created_at: string;
-    updated_at: string;
-}
-
-interface ProductSize {
-    id?: string;
-    size: string;
-    age_range?: string;
-    stock: number;
-}
-
-interface Category {
-    id: string;
-    name: string;
-}
-
-interface School {
-    id: string;
-    name: string;
-}
+import { ProductSize, School as SchoolType, Category, Product } from '@/lib/types'
+import ImageUploader from '@/components/ImageUploader'
+import { useImageUpload } from '@/hooks/useImageUpload'
 
 const EditProductPage = () => {
     const router = useRouter()
@@ -84,12 +51,12 @@ const EditProductPage = () => {
 
     // Options data
     const [categories, setCategories] = useState<Category[]>([])
-    const [schools, setSchools] = useState<School[]>([])
+    const [schools, setSchools] = useState<SchoolType[]>([])
 
-    // Image handling
-    const [imageUrls, setImageUrls] = useState<string>('')
-    const [isUploading, setIsUploading] = useState(false)
+    // Image handling - Updated for ImageUploader
+    const [pendingImageFiles, setPendingImageFiles] = useState<File[]>([])
     const [removedImages, setRemovedImages] = useState<string[]>([])
+    const { uploadMultipleImages, deleteMultipleImages } = useImageUpload()
 
     // Mobile responsiveness
     const [activeSection, setActiveSection] = useState<string>('basic')
@@ -177,11 +144,13 @@ const EditProductPage = () => {
                 formData.category_id !== product.category_id ||
                 formData.school_id !== product.school_id ||
                 JSON.stringify(formData.images) !== JSON.stringify(product.images) ||
+                pendingImageFiles.length > 0 ||
+                removedImages.length > 0 ||
                 !compareProductSizes(productSizes, product.product_sizes)
 
             setFormChanged(hasChanges)
         }
-    }, [formData, productSizes, product])
+    }, [formData, productSizes, product, pendingImageFiles, removedImages])
 
     // Compare product sizes helper
     const compareProductSizes = (sizes1: ProductSize[], sizes2: ProductSize[]): boolean => {
@@ -245,60 +214,18 @@ const EditProductPage = () => {
         }
     }
 
-    // Add image URL
-    const addImageUrl = () => {
-        if (imageUrls && !formData.images.includes(imageUrls)) {
-            setFormData({
-                ...formData,
-                images: [...formData.images, imageUrls]
-            })
-            setImageUrls('')
-        }
-    }
+    // Track removed images - handled by ImageUploader now
+    const handleImagesChange = (newImages: string[]) => {
+        // Find which images were removed
+        const removed = formData.images.filter(img => !newImages.includes(img))
 
-    // Remove image
-    const removeImage = (index: number) => {
-        const imageToRemove = formData.images[index]
-        if (imageToRemove) {
-            setRemovedImages([...removedImages, imageToRemove])
+        // Add to removedImages list for backend processing
+        if (removed.length > 0) {
+            setRemovedImages([...removedImages, ...removed])
         }
 
-        const updatedImages = [...formData.images]
-        updatedImages.splice(index, 1)
-        setFormData({ ...formData, images: updatedImages })
-    }
-
-    // Handle image upload
-    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = e.target.files
-        if (!files || files.length === 0) return
-
-        setIsUploading(true)
-
-        try {
-            // Mock upload for demonstration
-            // In reality, you would upload to your storage service
-            const uploadedUrls = await Promise.all(
-                Array.from(files).map(async (file) => {
-                    // Simulate a delay
-                    await new Promise(resolve => setTimeout(resolve, 1000))
-                    return URL.createObjectURL(file)
-                })
-            )
-
-            setFormData({
-                ...formData,
-                images: [...formData.images, ...uploadedUrls]
-            })
-            toast.success(`${files.length} image${files.length > 1 ? 's' : ''} uploaded`)
-
-        } catch (error) {
-            console.error('Error uploading images:', error)
-            toast.error('Failed to upload images')
-        } finally {
-            setIsUploading(false)
-            e.target.value = ''
-        }
+        // Update form data with new images
+        setFormData({ ...formData, images: newImages })
     }
 
     // Validate form
@@ -346,9 +273,42 @@ const EditProductPage = () => {
         setIsSubmitting(true)
 
         try {
-            // Format the data for API
+            let finalImageUrls = [...formData.images];
+
+            // Upload any pending image files first
+            if (pendingImageFiles.length > 0) {
+                toast.info(`Uploading ${pendingImageFiles.length} images...`);
+
+                // Upload the images and get the URLs
+                const uploadedUrls = await uploadMultipleImages(pendingImageFiles);
+
+                if (uploadedUrls.length === 0 && pendingImageFiles.length > 0) {
+                    throw new Error("Failed to upload images");
+                }
+
+                // Add the new URLs to our existing ones
+                finalImageUrls = [...finalImageUrls, ...uploadedUrls];
+            }
+
+            // If there are removed images, delete them from storage
+            if (removedImages.length > 0) {
+                toast.info(`Removing ${removedImages.length} images...`);
+
+                const deleteResult = await deleteMultipleImages(removedImages);
+                console.log('Delete result:', deleteResult);
+
+                if (!deleteResult) {
+                    throw new Error('Failed to remove images');
+                }
+
+                // Clear removed images after successful deletion
+                setRemovedImages([]);
+            }
+
+            // Format the data for API with the final image URLs
             const productData = {
                 ...formData,
+                images: finalImageUrls,
                 price: parseFloat(formData.price as string),
                 productSizes: productSizes.filter(size => size.size.trim() !== ''),
                 removedImages
@@ -372,11 +332,14 @@ const EditProductPage = () => {
             // Reset removed images
             setRemovedImages([])
 
+            // Reset pending files
+            setPendingImageFiles([])
+
             // Reset form changed state
             setFormChanged(false)
 
             // Optional: Redirect
-            // router.push(`/dashboard/admin/products/${productId}`)
+            router.push(`/dashboard/admin/products`)
 
         } catch (error) {
             console.error('Error updating product:', error)
@@ -771,7 +734,7 @@ const EditProductPage = () => {
                     </div>
                 </div>
 
-                {/* Product Images */}
+                {/* Product Images - REPLACED with ImageUploader */}
                 <div className={`bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden ${activeSection !== 'images' && 'md:block hidden'}`}>
                     <div className="bg-gradient-to-r from-green-50 to-white p-4 border-b border-gray-200">
                         <div className="flex items-center">
@@ -781,106 +744,13 @@ const EditProductPage = () => {
                     </div>
 
                     <div className="p-5">
-                        {/* Image uploads */}
-                        <div className="mb-6">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Upload Images</label>
-                            <label
-                                className="flex flex-col items-center justify-center px-4 py-8 bg-white border-2 border-dashed border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors group"
-                            >
-                                <div className="flex flex-col items-center">
-                                    <div className="p-3 rounded-full bg-blue-50 text-blue-500 mb-3 group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">
-                                        <Upload className="w-8 h-8" />
-                                    </div>
-                                    <span className="text-sm text-gray-700 font-medium">Drag and drop files here</span>
-                                    <span className="text-xs text-gray-500 mt-1">or click to browse</span>
-                                    <span className="text-xs text-gray-400 mt-3">Maximum 5MB per file • JPG, PNG, WEBP</span>
-                                    <input
-                                        type="file"
-                                        className="hidden"
-                                        accept="image/*"
-                                        multiple
-                                        onChange={handleImageUpload}
-                                        disabled={isUploading}
-                                    />
-                                </div>
-                            </label>
-                            {isUploading && (
-                                <div className="mt-3 bg-blue-50 text-blue-700 p-3 rounded-md flex items-center">
-                                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                                    <span className="text-sm">Uploading images...</span>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Add image URL */}
-                        <div className="mb-6">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Or Add Image URL</label>
-                            <div className="flex gap-2">
-                                <input
-                                    type="text"
-                                    value={imageUrls}
-                                    onChange={(e) => setImageUrls(e.target.value)}
-                                    className="flex-1 px-4 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-                                    placeholder="https://example.com/image.jpg"
-                                />
-                                <button
-                                    type="button"
-                                    onClick={addImageUrl}
-                                    disabled={!imageUrls}
-                                    className="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    <Plus className="w-5 h-5" />
-                                </button>
-                            </div>
-                            <p className="mt-1.5 text-xs text-gray-500">Enter a valid URL for an image hosted elsewhere</p>
-                        </div>
-
-                        {/* Image preview */}
-                        {formData.images.length > 0 ? (
-                            <div className="mt-6">
-                                <div className="flex items-center justify-between mb-3">
-                                    <h3 className="text-sm font-medium text-gray-700">Product Images ({formData.images.length})</h3>
-                                    <span className="text-xs text-gray-500">Drag to reorder (first image will be featured)</span>
-                                </div>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                                    {formData.images.map((image, index) => (
-                                        <div key={index} className="relative group rounded-lg overflow-hidden shadow-sm border border-gray-200 bg-white">
-                                            <div className="aspect-square bg-gray-100 relative">
-                                                {/* Use regular img tag for development - more permissive */}
-                                                <img
-                                                    src={image}
-                                                    alt={`Product image ${index + 1}`}
-                                                    className="w-full h-full object-cover absolute inset-0"
-                                                    onError={(e) => {
-                                                        const target = e.target as HTMLImageElement;
-                                                        target.onerror = null;
-                                                        target.src = '/images/placeholder-product.png';
-                                                    }}
-                                                />
-                                            </div>
-                                            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200"></div>
-                                            <button
-                                                type="button"
-                                                onClick={() => removeImage(index)}
-                                                className="absolute top-2 right-2 p-1.5 bg-white text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-red-500 hover:text-white"
-                                                title="Remove image"
-                                            >
-                                                <X className="w-3.5 h-3.5" />
-                                            </button>
-                                            {index === 0 && (
-                                                <span className="absolute bottom-2 left-2 px-2 py-0.5 bg-blue-600 text-white text-xs rounded-md font-medium opacity-80">Featured</span>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="mt-4 border border-gray-200 rounded-lg bg-gray-50 p-6 text-center">
-                                <ImageIcon className="w-10 h-10 text-gray-300 mx-auto mb-2" />
-                                <p className="text-gray-500">No images added yet</p>
-                                <p className="text-gray-400 text-sm mt-1">Images help your product sell better</p>
-                            </div>
-                        )}
+                        {/* REPLACED with ImageUploader component */}
+                        <ImageUploader
+                            images={formData.images}
+                            onChange={handleImagesChange}
+                            onFilesChange={(files) => setPendingImageFiles(files)}
+                            pendingFiles={pendingImageFiles}
+                        />
                     </div>
                 </div>
 

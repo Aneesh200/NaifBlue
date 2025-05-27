@@ -71,3 +71,40 @@ export interface OrdersResponse {
     orders: Order[];
     pagination: OrdersPagination;
 }
+
+export interface Product {
+    id: string;
+    name: string;
+    description?: string;
+    price: number;
+    images: string[];
+    in_stock: boolean;
+    inventory_count: number;
+    category_id?: string;
+    school_id?: string;
+    product_sizes: ProductSize[];
+    created_at: string;
+    updated_at: string;
+}
+
+export interface ProductSize {
+    id?: string;
+    size: string;
+    age_range?: string;
+    stock: number;
+}
+
+export interface Category {
+    id: string;
+    name: string;
+}
+
+export interface School {
+    id: string;
+    name: string;
+}
+
+export interface Category {
+    id: string
+    name: string
+}
