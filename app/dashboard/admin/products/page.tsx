@@ -273,7 +273,7 @@ const ProductsPage = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
                     {[...Array(8)].map((_, index) => (
                         <div key={index} className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm animate-pulse">
-                            <div className="bg-gray-200 w-full h-48"></div>
+                            <div className="bg-gray-200 w-full h-64"></div>
                             <div className="p-4 space-y-3">
                                 <div className="h-5 bg-gray-200 rounded w-3/4"></div>
                                 <div className="h-4 bg-gray-200 rounded w-1/3"></div>
@@ -285,33 +285,39 @@ const ProductsPage = () => {
             ) : products.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
                     {products.map((product) => (
-                        <div key={product.id} className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow transition-shadow duration-200">
-                            {/* Image Container - Fixed aspect ratio */}
-                            <div className="relative w-full pt-[75%] bg-gray-100">
+                        <div key={product.id} className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col">
+                            {/* Image Container - Updated to match ProductQuickView style */}
+                            <div className="h-64 md:h-72 bg-gray-50 overflow-hidden flex items-center justify-center p-4">
                                 {product.images && product.images.length > 0 ? (
-                                    <Image
-                                        src={product.images[0]}
-                                        alt={product.name}
-                                        className="object-cover absolute top-0 left-0"
-                                        width={400}
-                                        height={300}
-                                        loading="lazy"
-                                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-                                    />
+                                    <div className="relative w-full h-full flex items-center justify-center">
+                                        <Image
+                                            src={product.images[0]}
+                                            alt={product.name}
+                                            className="object-contain max-h-full max-w-full"
+                                            fill={true}
+                                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                                            style={{ objectFit: 'contain' }}
+                                            loading="lazy"
+                                        />
+                                    </div>
                                 ) : (
-                                    <div className="absolute inset-0 flex items-center justify-center text-gray-400">
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <div className="flex flex-col items-center justify-center text-gray-400">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                         </svg>
+                                        <span className="text-gray-400 text-sm mt-2">No image</span>
                                     </div>
                                 )}
                             </div>
 
-                            {/* Product Info */}
-                            <div className="p-4 space-y-2">
-                                <h3 className="font-medium text-gray-800 truncate" title={product.name}>
+                            {/* Product Info - Styled more like ProductQuickView */}
+                            <div className="p-5 space-y-3 flex-grow border-t border-gray-100">
+                                <h3 className="font-medium text-gray-900 truncate" title={product.name}>
                                     {product.name}
                                 </h3>
+
+                                {/* Price styled like ProductQuickView */}
+                                <p className="text-lg font-light text-gray-900">{formatPrice(product.price)}</p>
 
                                 {/* Category Tag */}
                                 {product.category && (
@@ -327,27 +333,28 @@ const ProductsPage = () => {
                                     </div>
                                 )}
 
-                                {/* Price and Stock */}
-                                <div className="flex items-center justify-between pt-1">
-                                    <span className="font-semibold text-blue-600">{formatPrice(product.price)}</span>
-                                    {typeof product.inventory_count === 'number' && (
+                                {/* Stock Status */}
+                                {typeof product.inventory_count === 'number' && (
+                                    <div className="flex items-center">
                                         <span className={`text-xs px-2 py-1 rounded-full ${product.inventory_count > 10
                                             ? 'bg-green-50 text-green-700'
                                             : product.inventory_count > 0
                                                 ? 'bg-yellow-50 text-yellow-700'
                                                 : 'bg-red-50 text-red-700'
                                             }`}>
-                                            Stock: {product.inventory_count}
+                                            {product.inventory_count > 0
+                                                ? `In Stock (${product.inventory_count})`
+                                                : 'Out of Stock'}
                                         </span>
-                                    )}
-                                </div>
+                                    </div>
+                                )}
 
                                 {/* Action Buttons */}
-                                <div className="border-t pt-3 mt-2 flex justify-between items-center">
+                                <div className="pt-3 mt-2 flex justify-between items-center border-t border-gray-100">
                                     <div className="flex space-x-2">
                                         <Link
                                             href={`/products/${product.id}`}
-                                            className="p-1.5 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition-colors"
+                                            className="p-2 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition-colors"
                                             title="View Details"
                                         >
                                             <Eye className="w-4 h-4" />
@@ -355,7 +362,7 @@ const ProductsPage = () => {
 
                                         <Link
                                             href={`/dashboard/admin/products/${product.id}/edit`}
-                                            className="p-1.5 bg-gray-50 text-gray-600 rounded-md hover:bg-gray-100 transition-colors"
+                                            className="p-2 bg-gray-50 text-gray-600 rounded-md hover:bg-gray-100 transition-colors"
                                             title="Edit Product"
                                         >
                                             <Pencil className="w-4 h-4" />
@@ -364,7 +371,7 @@ const ProductsPage = () => {
                                         <button
                                             onClick={() => setShowDeleteModal(product.id)}
                                             disabled={deleteLoading === product.id}
-                                            className="p-1.5 bg-red-50 text-red-600 rounded-md hover:bg-red-100 disabled:opacity-50 transition-colors"
+                                            className="p-2 bg-red-50 text-red-600 rounded-md hover:bg-red-100 disabled:opacity-50 transition-colors"
                                             title="Delete Product"
                                         >
                                             {deleteLoading === product.id ? (
