@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 // import Image from 'next/image'
 import { Order } from '@/lib/types'
-import { renderStatusBadge } from '@/app/components/admin/OrderStatusCard'
+import { renderStatusBadge } from '@/components/admin/OrderStatusCard'
 
 // Product interface
 interface Product {

@@ -3,11 +3,11 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function AuthForm() {
   const [email, setEmail] = useState('');
@@ -15,12 +15,12 @@ export default function AuthForm() {
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [isSignIn, setIsSignIn] = useState(true);
-  const { signIn, googleSignIn } = useAuth();
+  const { signIn } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectPath = searchParams.get('redirect') || '/';
   const authError = searchParams.get('error');
-  
+
   // Check for auth errors from callback
   useEffect(() => {
     if (authError) {
@@ -31,9 +31,9 @@ export default function AuthForm() {
         'no_code': 'Authorization code missing. Please try again.',
         'unknown': 'An unknown error occurred. Please try again.'
       };
-      
+
       toast.error(errorMessages[authError] || 'Authentication error');
-      
+
       // Remove the error from URL
       const url = new URL(window.location.href);
       url.searchParams.delete('error');
@@ -44,13 +44,13 @@ export default function AuthForm() {
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
+
     try {
       if (isSignIn) {
         const { error, success } = await signIn(email, password);
-        
+
         if (error) throw error;
-        
+
         if (success) {
           toast.success('Signed in successfully!');
           setTimeout(() => {
@@ -69,36 +69,42 @@ export default function AuthForm() {
             fullName: name,
           }),
         });
-        
+
         const data = await response.json();
-        
+
         if (!response.ok) {
           throw new Error(data.error || 'Registration failed');
         }
-        
+
         toast.success('Account created! Please check your email for verification.');
-        
+
         setIsSignIn(true);
         setPassword('');
       }
-    } catch (error: any) {
-      console.error('Auth error:', error);
-      toast.error(error.message || 'An error occurred');
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error('Auth error:', error);
+        toast.error(error.message || 'An error occurred');
+      }
+      else {
+        console.error('Unknown auth error:', error);
+        toast.error('An unknown error occurred. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGoogleSignIn = async () => {
-    setLoading(true);
-    
-    try {
-      await googleSignIn();
-    } catch (error: any) {
-      toast.error(error.message || 'An error occurred with Google Sign In');
-      setLoading(false);
-    }
-  };
+  // const handleGoogleSignIn = async () => {
+  //   setLoading(true);
+
+  //   try {
+  //     await googleSignIn();
+  //   } catch (error: any) {
+  //     toast.error(error.message || 'An error occurred with Google Sign In');
+  //     setLoading(false);
+  //   }
+  // };
 
   return (
     <Card className="w-full">
@@ -107,12 +113,12 @@ export default function AuthForm() {
           {isSignIn ? 'Sign In' : 'Create an Account'}
         </CardTitle>
         <CardDescription className="text-center">
-          {isSignIn 
-            ? 'Enter your credentials to access your account' 
+          {isSignIn
+            ? 'Enter your credentials to access your account'
             : 'Fill in the details below to create your account'}
         </CardDescription>
       </CardHeader>
-      
+
       <CardContent>
         <form onSubmit={handleAuth} className="space-y-4">
           {!isSignIn && (
@@ -130,7 +136,7 @@ export default function AuthForm() {
               />
             </div>
           )}
-          
+
           <div className="space-y-2">
             <label htmlFor="email" className="text-sm font-medium">
               Email
@@ -145,7 +151,7 @@ export default function AuthForm() {
               className="w-full"
             />
           </div>
-          
+
           <div className="space-y-2">
             <label htmlFor="password" className="text-sm font-medium">
               Password
@@ -160,12 +166,12 @@ export default function AuthForm() {
               className="w-full"
             />
           </div>
-          
+
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? 'Processing...' : isSignIn ? 'Sign In' : 'Sign Up'}
           </Button>
         </form>
-        
+
         <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t"></div>
@@ -174,10 +180,10 @@ export default function AuthForm() {
             <span className="bg-white px-2 text-gray-500">Or continue with</span>
           </div>
         </div>
-        
-        <Button 
-          variant="outline" 
-          onClick={handleGoogleSignIn}
+
+        <Button
+          variant="outline"
+          // onClick={handleGoogleSignIn}
           disabled={loading}
           className="w-full"
         >
@@ -191,10 +197,10 @@ export default function AuthForm() {
           Continue with Google
         </Button>
       </CardContent>
-      
+
       <CardFooter className="flex justify-center">
-        <Button 
-          variant="link" 
+        <Button
+          variant="link"
           onClick={() => setIsSignIn(!isSignIn)}
           className="text-blue-600 hover:text-blue-800"
         >

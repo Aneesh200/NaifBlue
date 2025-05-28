@@ -18,7 +18,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { ProductSize, School as SchoolType, Category, Product } from '@/lib/types'
-import ImageUploader from '@/components/ImageUploader'
+import ImageUploader from '@/components/admin/ImageUploader'
 import { useImageUpload } from '@/hooks/useImageUpload'
 
 const EditProductPage = () => {

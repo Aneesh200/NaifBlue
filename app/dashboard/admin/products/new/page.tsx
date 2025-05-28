@@ -16,7 +16,7 @@ import {
     School
 } from 'lucide-react'
 import Link from 'next/link'
-import { ImageUploader } from '@/components/ImageUploader'
+import { ImageUploader } from '@/components/admin/ImageUploader'
 import { ProductSize, School as SchoolType, Category } from '@/lib/types'
 import Image from 'next/image'
 import { useImageUpload } from '@/hooks/useImageUpload'

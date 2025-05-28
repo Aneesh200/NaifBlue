@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { createClient } from "@/utils/supabase/server";
 
 export async function GET() {
+  const supabase = await createClient();
+  const { data: user } = await supabase.auth.getUser();
+  console.log('User:', user);
   try {
     const categories = await prisma.category.findMany({
       orderBy: {

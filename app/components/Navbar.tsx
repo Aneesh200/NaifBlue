@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -25,9 +25,9 @@ import { useCartStore } from "@/lib/store";
 
 export default function Navbar() {
   const [cartCount, setCartCount] = useState(0);
-  const { user, signOut } = useAuth();
+  const { user, userRole, signOut } = useAuth();
   const pathname = usePathname();
-  const [userRole, setUserRole] = useState<string | null>(null);
+  // const [userRole, setUserRole] = useState<string | null>(null);
   const { itemCount } = useCartStore();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -40,60 +40,29 @@ export default function Navbar() {
     return () => clearInterval(interval);
   }, [itemCount]);
 
-  // Get user role
-  useEffect(() => {
-    async function getUserRole() {
-      if (!user) {
-        setUserRole(null);
-        return;
+  console.log('User:', user);
+  console.log('User Role:', userRole);
+
+  const hanleSignOut = async () => {
+    try {
+      const res = await signOut();
+      if (!res.success) {
+        throw new Error(res.error?.message || 'Sign out failed');
       }
-
-      try {
-        const headers: HeadersInit = {
-          'Content-Type': 'application/json',
-        };
-
-        if (user.access_token) {
-          headers['Authorization'] = `Bearer ${user.access_token}`;
-        }
-
-        const requestOptions = {
-          credentials: 'include' as RequestCredentials,
-          headers
-        };
-
-        let response = await fetch('/api/users/role', requestOptions);
-
-        if (!response.ok) {
-          response = await fetch('/api/user/role', requestOptions);
-        }
-
-        if (response.ok) {
-          const data = await response.json();
-          setUserRole(data.role);
-        } else {
-          if (!userRole) {
-            setUserRole(null);
-          }
-        }
-      } catch (error) {
-        if (!userRole) {
-          setUserRole(null);
-        }
-      }
+      console.log('Sign out successful');
+      setIsMobileMenuOpen(false);
+    } catch (error) {
+      console.error('Error signing out:', error);
     }
-
-    getUserRole();
-  }, [user, userRole]);
+  };
 
   const getNavLinkClass = (path: string) => {
     const isActive =
       path === pathname ||
       (path !== '/' && pathname.startsWith(path));
 
-    return `py-2 text-sm font-light transition-colors hover:text-black ${
-      isActive ? 'text-black border-b-2 border-black' : 'text-gray-500'
-    }`;
+    return `py-2 text-sm font-light transition-colors hover:text-black ${isActive ? 'text-black border-b-2 border-black' : 'text-gray-500'
+      }`;
   };
 
   // Close mobile menu when route changes
@@ -245,7 +214,7 @@ export default function Navbar() {
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator className="bg-gray-200" />
-                <DropdownMenuItem onClick={() => signOut()} className="font-light">
+                <DropdownMenuItem onClick={hanleSignOut} className="font-light">
                   Log out
                 </DropdownMenuItem>
               </DropdownMenuContent>

@@ -1,36 +1,17 @@
 //TO-DO Add supabase auth
 
 import { NextRequest, NextResponse } from 'next/server';
-// import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-// import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
+// import { createClient } from '@/utils/supabase/server';
 
 
 export async function GET(request: NextRequest) {
     try {
-        // const cookieStore = cookies();
-        // const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
-
-
-        // // Get the session from Supabase
-        // const {
-        //     data: { session },
-        //     error,
-        // } = await supabase.auth.getSession();
-        // console.log('Session:', session);
-        // console.log('Error:', error);
-
-        // if (error || !session || !session.user) {
-        //     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        // }
-
-        // // Optional: Check user role from metadata
-        // const userRole = session.user.user_metadata?.role;
-        // // if (userRole !== 'ADMIN') {
-        // //     return NextResponse.json({ error: 'Forbidden: Admins only' }, { status: 403 });
-        // // }
-
         // Parse query parameters
+        // const supabase = await createClient()
+        // const { data: user } = await supabase.auth.getUser();
+
+        // console.log('User:', user);
         const { searchParams } = new URL(request.url);
         const timeFilter = searchParams.get('timeFilter') || 'week';
 
