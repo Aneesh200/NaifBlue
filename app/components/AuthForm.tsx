@@ -18,7 +18,6 @@ export default function AuthForm() {
   const { signIn } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectPath = searchParams.get('redirect') || '/';
   const authError = searchParams.get('error');
 
   // Check for auth errors from callback
@@ -54,7 +53,7 @@ export default function AuthForm() {
         if (success) {
           toast.success('Signed in successfully!');
           setTimeout(() => {
-            router.push(redirectPath);
+            window.location.reload();
           }, 500);
         }
       } else {

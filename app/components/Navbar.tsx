@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -30,6 +30,7 @@ export default function Navbar() {
   // const [userRole, setUserRole] = useState<string | null>(null);
   const { itemCount } = useCartStore();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const router = useRouter();
 
   // Update cart count from local storage
   useEffect(() => {
@@ -47,6 +48,7 @@ export default function Navbar() {
         throw new Error(res.error?.message || 'Sign out failed');
       }
       setIsMobileMenuOpen(false);
+      router.refresh();
     } catch (error) {
       console.error('Error signing out:', error);
     }

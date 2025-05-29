@@ -120,10 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 throw new Error(error?.message || 'Login failed');
             }
 
-            // Ensure state is updated with the new session data
             setSession(data!.session);
-            setUser(data?.user ?? null);
-
             return { error: null, success: true };
         } catch (error: unknown) {
             if (error instanceof Error) {

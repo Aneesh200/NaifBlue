@@ -69,6 +69,9 @@ export async function updateSession(request: NextRequest) {
         } else if (userRole === 'manager' && currentPath !== '/dashboard/manager') {
             url.pathname = '/dashboard/manager'
             return NextResponse.redirect(url)
+        } else if (userRole === 'user') {
+            url.pathname = '/'
+            return NextResponse.redirect(url)
         }
     }
 
