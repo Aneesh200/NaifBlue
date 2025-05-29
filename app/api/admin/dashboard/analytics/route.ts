@@ -2,16 +2,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-// import { createClient } from '@/utils/supabase/server';
 
 
 export async function GET(request: NextRequest) {
     try {
-        // Parse query parameters
-        // const supabase = await createClient()
-        // const { data: user } = await supabase.auth.getUser();
-
-        // console.log('User:', user);
         const { searchParams } = new URL(request.url);
         const timeFilter = searchParams.get('timeFilter') || 'week';
 

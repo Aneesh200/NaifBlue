@@ -40,16 +40,12 @@ export default function Navbar() {
     return () => clearInterval(interval);
   }, [itemCount]);
 
-  console.log('User:', user);
-  console.log('User Role:', userRole);
-
   const hanleSignOut = async () => {
     try {
       const res = await signOut();
       if (!res.success) {
         throw new Error(res.error?.message || 'Sign out failed');
       }
-      console.log('Sign out successful');
       setIsMobileMenuOpen(false);
     } catch (error) {
       console.error('Error signing out:', error);

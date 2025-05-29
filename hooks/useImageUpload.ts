@@ -144,7 +144,6 @@ export function useImageUpload() {
             console.error('No paths provided for deletion');
             return [];
         }
-        console.log('Paths to delete:', paths);
         // Map over paths and create delete promises
         const extractedPaths: string[] = [];
         paths.map((path) => {
@@ -153,7 +152,6 @@ export function useImageUpload() {
                 extractedPaths.push(extractPathFromUrl(path)!);
             }
         });
-        console.log('Extracted paths:', extractedPaths);
 
         const deletePromises = extractedPaths.map(async (path) => {
             const res = deleteImage(path);

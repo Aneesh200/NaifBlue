@@ -1,6 +1,5 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
-import { getRole } from '@/app/actions/getRole'
 
 export async function updateSession(request: NextRequest) {
     let supabaseResponse = NextResponse.next({
@@ -38,38 +37,41 @@ export async function updateSession(request: NextRequest) {
         data: { user },
     } = await supabase.auth.getUser()
 
-    // const userRoleRes = user ? await getRole(user.id) : null
-    // const userRole = userRoleRes?.role || null
+    const userRole = user?.app_metadata.role;
 
-    if (
-        !user &&
-        request.nextUrl.pathname.startsWith('/dashboard')
-    ) {
+    if (!user && !request.nextUrl.pathname.startsWith('/sign-in')) {
         // no user, potentially respond by redirecting the user to the login page
         const url = request.nextUrl.clone()
         url.pathname = '/sign-in'
         return NextResponse.redirect(url)
-        // } else if (user && request.nextUrl.pathname.startsWith('/sign-in')) {
-        //     // user exists, but is trying to access the sign-in page
-        //     // redirect them to the dashboard or home page
-        //     const url = request.nextUrl.clone()
-        //     if (userRole === 'admin') {
-        //         url.pathname = '/dashboard/admin'
-        //     } else if (userRole === 'warehouse') {
-        //         url.pathname = '/dashboard/warehouse'
-        //     } else {
-        //         url.pathname = '/'
-        //     }
-        //     return NextResponse.redirect(url)
-        // } else if (user && request.nextUrl.pathname.startsWith('/dashboard')) {
-        //     const url = request.nextUrl.clone()
-        //     if (userRole === 'warehouse' && !request.nextUrl.pathname.startsWith('/dashboard/admin')) {
-        //         url.pathname = '/dashboard/warehouse'
-        //     } else if (userRole === 'user') {
-        //         url.pathname = '/'
-        //     }
-        //     return NextResponse.redirect(url)
+    } else if (user && request.nextUrl.pathname.startsWith('/sign-in')) {
+        // user exists, but is trying to access the sign-in page
+        // redirect them to the dashboard or home page
+        const url = request.nextUrl.clone()
+        if (userRole === 'admin') {
+            url.pathname = '/dashboard/admin'
+        } else if (userRole === 'warehouse') {
+            url.pathname = '/dashboard/warehouse'
+        } else {
+            url.pathname = '/'
+        }
+        return NextResponse.redirect(url)
+    } else if (user && request.nextUrl.pathname.startsWith('/dashboard')) {
+        const currentPath = request.nextUrl.pathname
+        const url = request.nextUrl.clone()
+
+        if (userRole === 'admin' && currentPath !== '/dashboard/admin') {
+            url.pathname = '/dashboard/admin'
+            return NextResponse.redirect(url)
+        } else if (userRole === 'warehouse' && currentPath !== '/dashboard/warehouse') {
+            url.pathname = '/dashboard/warehouse'
+            return NextResponse.redirect(url)
+        } else if (userRole === 'manager' && currentPath !== '/dashboard/manager') {
+            url.pathname = '/dashboard/manager'
+            return NextResponse.redirect(url)
+        }
     }
+
 
     // IMPORTANT: You *must* return the supabaseResponse object as it is.
     // If you're creating a new response object with NextResponse.next() make sure to:

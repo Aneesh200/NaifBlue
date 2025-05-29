@@ -180,6 +180,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
             setUser(null);
             setSession(null);
+            setUserRole(null);
             return { error: null, success: true };
         } catch (error: unknown) {
             if (error instanceof Error) {
