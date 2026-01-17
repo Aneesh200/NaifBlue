@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -30,6 +30,7 @@ interface Product {
     images?: string[];
     category?: string | { id: string; name: string; created_at?: string; updated_at?: string };
     inventory_count?: number;
+    is_active?: boolean;
     created_at: string;
 }
 
@@ -40,7 +41,7 @@ interface Category {
     productCount: number;
 }
 
-const ProductsPage = () => {
+const ProductsPageContent = () => {
     const router = useRouter()
     const searchParams = useSearchParams()
 
@@ -65,6 +66,7 @@ const ProductsPage = () => {
     const [categories, setCategories] = useState<Category[]>([])
     const [deleteLoading, setDeleteLoading] = useState<string | null>(null)
     const [showDeleteModal, setShowDeleteModal] = useState<string | null>(null)
+    const [toggleLoading, setToggleLoading] = useState<string | null>(null)
 
     // Fetch products on component mount and when query params change
     useEffect(() => {
@@ -158,19 +160,65 @@ const ProductsPage = () => {
                 method: 'DELETE',
             })
 
+            const data = await response.json()
+
             if (!response.ok) {
-                throw new Error('Failed to delete product')
+                toast.error(data.message || 'Failed to delete product')
+                return
             }
 
             // Remove the product from the local state
             setProducts(products.filter(product => product.id !== productId))
-            toast.success('Product deleted successfully')
+            
+            // Show appropriate success message
+            if (data.soft_deleted) {
+                toast.success('Product delisted! It will no longer appear in the store but order history is preserved.', {
+                    duration: 5000,
+                })
+            } else {
+                toast.success('Product permanently deleted')
+            }
         } catch (error) {
             console.error('Error deleting product:', error)
             toast.error('Failed to delete product')
         } finally {
             setDeleteLoading(null)
             setShowDeleteModal(null)
+        }
+    }
+
+    // Toggle product active status
+    const toggleProductStatus = async (productId: string, currentStatus: boolean) => {
+        setToggleLoading(productId)
+        try {
+            const response = await fetch(`/api/admin/dashboard/products/${productId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ is_active: !currentStatus }),
+            })
+
+            const data = await response.json()
+
+            if (!response.ok) {
+                toast.error(data.message || 'Failed to toggle product status')
+                return
+            }
+
+            // Update the product in local state
+            setProducts(products.map(product => 
+                product.id === productId 
+                    ? { ...product, is_active: !currentStatus }
+                    : product
+            ))
+            
+            toast.success(data.message)
+        } catch (error) {
+            console.error('Error toggling product status:', error)
+            toast.error('Failed to toggle product status')
+        } finally {
+            setToggleLoading(null)
         }
     }
 
@@ -251,6 +299,7 @@ const ProductsPage = () => {
 
                 <div className="flex justify-between">
                     <button
+                        type="button"
                         onClick={resetFilters}
                         className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 flex items-center"
                     >
@@ -259,6 +308,7 @@ const ProductsPage = () => {
                     </button>
 
                     <button
+                        type="button"
                         onClick={applyFilters}
                         className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-md flex items-center text-sm font-medium"
                     >
@@ -285,9 +335,9 @@ const ProductsPage = () => {
             ) : products.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
                     {products.map((product) => (
-                        <div key={product.id} className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col">
+                        <div key={product.id} className={`bg-white border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col ${product.is_active === false ? 'border-red-300 opacity-75' : 'border-gray-200'}`}>
                             {/* Image Container - Updated to match ProductQuickView style */}
-                            <div className="h-64 md:h-72 bg-gray-50 overflow-hidden flex items-center justify-center p-4">
+                            <div className="h-64 md:h-72 bg-gray-50 overflow-hidden flex items-center justify-center p-4 relative">
                                 {product.images && product.images.length > 0 ? (
                                     <div className="relative w-full h-full flex items-center justify-center">
                                         <Image
@@ -299,6 +349,11 @@ const ProductsPage = () => {
                                             style={{ objectFit: 'contain' }}
                                             loading="lazy"
                                         />
+                                        {product.is_active === false && (
+                                            <div className="absolute top-2 right-2 bg-red-600 text-white text-xs font-semibold px-3 py-1 rounded-full shadow-lg">
+                                                DELISTED
+                                            </div>
+                                        )}
                                     </div>
                                 ) : (
                                     <div className="flex flex-col items-center justify-center text-gray-400">
@@ -306,6 +361,11 @@ const ProductsPage = () => {
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                         </svg>
                                         <span className="text-gray-400 text-sm mt-2">No image</span>
+                                        {product.is_active === false && (
+                                            <div className="absolute top-2 right-2 bg-red-600 text-white text-xs font-semibold px-3 py-1 rounded-full shadow-lg">
+                                                DELISTED
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -349,6 +409,34 @@ const ProductsPage = () => {
                                     </div>
                                 )}
 
+                                {/* Active Status Toggle */}
+                                <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-md">
+                                    <div className="flex items-center">
+                                        <span className={`text-xs font-medium ${product.is_active === false ? 'text-red-600' : 'text-green-600'}`}>
+                                            {product.is_active === false ? 'Delisted' : 'Active'}
+                                        </span>
+                                    </div>
+                                    <button
+                                        onClick={() => toggleProductStatus(product.id, product.is_active !== false)}
+                                        disabled={toggleLoading === product.id}
+                                        className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+                                        style={{
+                                            backgroundColor: product.is_active === false ? '#ef4444' : '#10b981'
+                                        }}
+                                        title={product.is_active === false ? 'Activate product' : 'Deactivate product'}
+                                    >
+                                        <span className="sr-only">Toggle product status</span>
+                                        {toggleLoading === product.id ? (
+                                            <Loader2 className="w-3 h-3 text-white absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 animate-spin" />
+                                        ) : (
+                                            <span
+                                                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${product.is_active === false ? 'translate-x-1' : 'translate-x-6'
+                                                    }`}
+                                            />
+                                        )}
+                                    </button>
+                                </div>
+
                                 {/* Action Buttons */}
                                 <div className="pt-3 mt-2 flex justify-between items-center border-t border-gray-100">
                                     <div className="flex space-x-2">
@@ -369,6 +457,7 @@ const ProductsPage = () => {
                                         </Link>
 
                                         <button
+                                            type="button"
                                             onClick={() => setShowDeleteModal(product.id)}
                                             disabled={deleteLoading === product.id}
                                             className="p-2 bg-red-50 text-red-600 rounded-md hover:bg-red-100 disabled:opacity-50 transition-colors"
@@ -415,6 +504,7 @@ const ProductsPage = () => {
 
                     <div className="flex space-x-1">
                         <button
+                            type="button"
                             onClick={() => goToPage(pagination.page - 1)}
                             disabled={pagination.page === 1}
                             className="px-3 py-1 border border-gray-300 rounded bg-white text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -439,6 +529,7 @@ const ProductsPage = () => {
                             return (
                                 <button
                                     key={pageNum}
+                                    type="button"
                                     onClick={() => goToPage(pageNum)}
                                     className={`px-3 py-1 border rounded ${pageNum === pagination.page
                                         ? 'bg-blue-600 text-white border-blue-600'
@@ -451,6 +542,7 @@ const ProductsPage = () => {
                         })}
 
                         <button
+                            type="button"
                             onClick={() => goToPage(pagination.page + 1)}
                             disabled={pagination.page === pagination.totalPages}
                             className="px-3 py-1 border border-gray-300 rounded bg-white text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -471,12 +563,14 @@ const ProductsPage = () => {
                         </p>
                         <div className="flex justify-end space-x-3">
                             <button
+                                type="button"
                                 onClick={() => setShowDeleteModal(null)}
                                 className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
                             >
                                 Cancel
                             </button>
                             <button
+                                type="button"
                                 onClick={() => deleteProduct(showDeleteModal)}
                                 disabled={deleteLoading !== null}
                                 className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 flex items-center"
@@ -498,6 +592,25 @@ const ProductsPage = () => {
                 </div>
             )}
         </div>
+    )
+}
+
+const ProductsPage = () => {
+    return (
+        <Suspense fallback={
+            <div className="p-6 bg-white rounded-lg shadow">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+                    <h1 className="text-2xl font-semibold text-gray-800">Products</h1>
+                </div>
+                <div className="animate-pulse space-y-4">
+                    {[...Array(5)].map((_, i) => (
+                        <div key={i} className="h-24 bg-gray-200 rounded"></div>
+                    ))}
+                </div>
+            </div>
+        }>
+            <ProductsPageContent />
+        </Suspense>
     )
 }
 

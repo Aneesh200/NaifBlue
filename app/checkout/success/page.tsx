@@ -1,9 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/utils/supabase/client';
+import { useCartStore } from '@/lib/store';
 import Link from 'next/link';
+
+const supabase = createClient();
 import { CheckCircle } from 'lucide-react';
 
 interface Order {
@@ -13,10 +16,12 @@ interface Order {
   created_at: string;
 }
 
-export default function SuccessPage() {
+function SuccessPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { clearCart } = useCartStore();
   const orderId = searchParams.get('order_id');
+  const paymentId = searchParams.get('payment_id');
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -36,6 +41,9 @@ export default function SuccessPage() {
 
         if (error) throw error;
         setOrder(data);
+        
+        // Clear cart after successfully loading order
+        clearCart();
       } catch (error) {
         console.error('Error fetching order:', error);
       } finally {
@@ -44,7 +52,7 @@ export default function SuccessPage() {
     }
 
     fetchOrder();
-  }, [orderId, router]);
+  }, [orderId, router, clearCart]);
 
   if (loading) {
     return (
@@ -96,7 +104,7 @@ export default function SuccessPage() {
           <div className="grid grid-cols-2 gap-4 text-left">
             <div>
               <p className="text-sm text-gray-500">Order Number</p>
-              <p className="font-medium">{order.id}</p>
+              <p className="font-medium text-xs break-all">{order.id}</p>
             </div>
             <div>
               <p className="text-sm text-gray-500">Date</p>
@@ -110,14 +118,28 @@ export default function SuccessPage() {
               <p className="text-sm text-gray-500">Status</p>
               <p className="font-medium capitalize">{order.status}</p>
             </div>
+            {paymentId && (
+              <div className="col-span-2">
+                <p className="text-sm text-gray-500">Payment ID</p>
+                <p className="font-medium text-xs break-all text-green-600">{paymentId}</p>
+              </div>
+            )}
           </div>
         </div>
         
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-8">
-          <p className="text-blue-800">
-            <strong>Demo Store Notice:</strong> This is a demo order. No actual payment has been processed and no products will be shipped.
-          </p>
-        </div>
+        {paymentId ? (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-8">
+            <p className="text-green-800">
+              <strong>Payment Successful!</strong> Your payment has been processed securely through Razorpay.
+            </p>
+          </div>
+        ) : (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-8">
+            <p className="text-blue-800">
+              Your order has been placed. Please complete the payment to process your order.
+            </p>
+          </div>
+        )}
         
         <p className="text-gray-600 mb-8">
           We've sent a confirmation email with the order details to your registered email address.
@@ -139,5 +161,20 @@ export default function SuccessPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SuccessPage() {
+  return (
+    <Suspense fallback={
+      <div className="container mx-auto px-4 py-12 text-center">
+        <div className="flex flex-col items-center justify-center">
+          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+          <p className="mt-4 text-gray-600">Loading order details...</p>
+        </div>
+      </div>
+    }>
+      <SuccessPageContent />
+    </Suspense>
   );
 } 

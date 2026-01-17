@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
+
+const supabase = createClient();
 import { Package, Clock, ArrowRight, ShoppingCart } from 'lucide-react';
 
 interface Order {

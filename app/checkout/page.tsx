@@ -4,16 +4,48 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useCartStore } from "@/lib/store";
 import Link from "next/link";
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/utils/supabase/client';
 import { toast } from 'react-hot-toast';
+import Script from 'next/script';
+
+const supabase = createClient();
+
+// Razorpay interface
+interface RazorpayOptions {
+  key: string;
+  amount: number;
+  currency: string;
+  name: string;
+  description: string;
+  order_id: string;
+  handler: (response: any) => void;
+  prefill: {
+    name: string;
+    email: string;
+    contact: string;
+  };
+  theme: {
+    color: string;
+  };
+  modal: {
+    ondismiss: () => void;
+  };
+}
+
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { items, totalPrice, clearCart } = useCartStore();
+  const { items, totalPrice } = useCartStore();
   const [isLoading, setIsLoading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [error, setError] = useState("");
   const [currentStep, setCurrentStep] = useState("shipping"); // shipping, login, payment
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -29,6 +61,8 @@ export default function CheckoutPage() {
     email: "",
     password: ""
   });
+  const [razorpayLoaded, setRazorpayLoaded] = useState(false);
+  const [scriptError, setScriptError] = useState(false);
 
   // Calculate order details
   const subtotal = totalPrice();
@@ -82,6 +116,43 @@ export default function CheckoutPage() {
     }
     
     checkAuth();
+  }, []);
+
+  // Load Razorpay script manually as fallback
+  useEffect(() => {
+    const checkRazorpay = () => {
+      if (window.Razorpay) {
+        setRazorpayLoaded(true);
+        console.log('Razorpay SDK loaded successfully');
+        return true;
+      }
+      return false;
+    };
+
+    // Check if already loaded
+    if (checkRazorpay()) return;
+
+    // Wait for Next.js Script component to load it
+    const interval = setInterval(() => {
+      if (checkRazorpay()) {
+        clearInterval(interval);
+      }
+    }, 100);
+
+    // Timeout after 10 seconds
+    const timeout = setTimeout(() => {
+      clearInterval(interval);
+      if (!window.Razorpay) {
+        console.error('Razorpay SDK failed to load');
+        setScriptError(true);
+        toast.error('Payment system failed to load. Please refresh the page.');
+      }
+    }, 10000);
+
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timeout);
+    };
   }, []);
 
   // Handler for form input changes
@@ -150,8 +221,122 @@ export default function CheckoutPage() {
     router.push(`/sign-up?redirect=checkout&email=${encodeURIComponent(loginData.email)}`);
   };
 
+  // Initiate Razorpay payment
+  const initiateRazorpayPayment = async (orderId: string, amount: number) => {
+    try {
+      // Create Razorpay order
+      const paymentResponse = await fetch('/api/payment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: amount,
+          order_id: orderId,
+          currency: 'INR',
+          user_info: {
+            name: formData.name,
+            email: formData.email,
+          },
+        }),
+      });
+
+      if (!paymentResponse.ok) {
+        throw new Error('Failed to create Razorpay order');
+      }
+
+      const paymentData = await paymentResponse.json();
+
+      // Open Razorpay checkout
+      const options: RazorpayOptions = {
+        key: paymentData.key,
+        amount: paymentData.amount,
+        currency: paymentData.currency,
+        name: 'NaifBleu',
+        description: 'Order Payment',
+        order_id: paymentData.order_id,
+        handler: async (response: any) => {
+          // Verify payment
+          try {
+            setIsProcessingPayment(true);
+            const verifyResponse = await fetch('/api/payment', {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_signature: response.razorpay_signature,
+                order_id: orderId,
+              }),
+            });
+
+            if (!verifyResponse.ok) {
+              throw new Error('Payment verification failed');
+            }
+
+            // Redirect to success page - cart will be cleared there
+            toast.success('Payment successful!');
+            const successUrl = `/checkout/success?order_id=${orderId}&payment_id=${response.razorpay_payment_id}`;
+            
+            // Use window.location.replace to prevent back button issues
+            window.location.replace(successUrl);
+          } catch (error) {
+            console.error('Payment verification error:', error);
+            toast.error('Payment verification failed. Please contact support.');
+            setIsProcessingPayment(false);
+            setIsLoading(false);
+          }
+        },
+        prefill: {
+          name: formData.name,
+          email: formData.email,
+          contact: formData.phone,
+        },
+        theme: {
+          color: '#000000',
+        },
+        modal: {
+          ondismiss: async () => {
+            // Record payment failure
+            try {
+              await fetch('/api/payment', {
+                method: 'PATCH',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  order_id: orderId,
+                  error_description: 'Payment cancelled by user',
+                }),
+              });
+            } catch (error) {
+              console.error('Error recording payment failure:', error);
+            }
+            
+            setIsLoading(false);
+            toast.error('Payment cancelled');
+          },
+        },
+      };
+
+      const razorpay = new window.Razorpay(options);
+      razorpay.open();
+    } catch (error) {
+      console.error('Razorpay payment error:', error);
+      toast.error('Failed to initiate payment');
+      setIsLoading(false);
+    }
+  };
+
   // Create order and proceed to payment
   const handleCreateOrder = async () => {
+    if (!razorpayLoaded) {
+      toast.error('Payment system is loading. Please wait...');
+      return;
+    }
+
     setIsLoading(true);
     setError("");
 
@@ -229,17 +414,20 @@ export default function CheckoutPage() {
           throw new Error(`Error creating address: ${addressError.message}`);
         }
         
-        // Set as default address
-        const { error: defaultError } = await supabase
-          .from('users')
-          .update({
-            default_address_id: addressData.id,
-            updated_at: new Date()
-          })
-          .eq('id', userId);
-          
-        if (defaultError) {
-          throw new Error(`Error setting default address: ${defaultError.message}`);
+        // Set as default address via API (bypasses RLS)
+        const setDefaultResponse = await fetch('/api/profile/set-default-address', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            addressId: addressData.id,
+          }),
+        });
+
+        if (!setDefaultResponse.ok) {
+          const errorData = await setDefaultResponse.json();
+          throw new Error(`Error setting default address: ${errorData.error || 'Unknown error'}`);
         }
       } else {
         // Get current user ID
@@ -262,18 +450,21 @@ export default function CheckoutPage() {
           throw new Error(`Error getting user data: ${userError.message}`);
         }
         
-        // Update name and phone in user record
-        const { error: updateUserError } = await supabase
-          .from('users')
-          .update({
+        // Update name and phone in user record via API (bypasses RLS)
+        const updateResponse = await fetch('/api/profile/update', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
             name: formData.name,
             phone: formData.phone,
-            updated_at: new Date()
-          })
-          .eq('id', userId);
-          
-        if (updateUserError) {
-          throw new Error(`Error updating user record: ${updateUserError.message}`);
+          }),
+        });
+
+        if (!updateResponse.ok) {
+          const errorData = await updateResponse.json();
+          throw new Error(`Error updating user record: ${errorData.error || 'Unknown error'}`);
         }
         
         if (userData.default_address_id) {
@@ -320,17 +511,20 @@ export default function CheckoutPage() {
             throw new Error(`Error creating address: ${addressError.message}`);
           }
           
-          // Set as default address
-          const { error: defaultError } = await supabase
-            .from('users')
-            .update({
-              default_address_id: addressData.id,
-              updated_at: new Date()
-            })
-            .eq('id', userId);
-            
-          if (defaultError) {
-            throw new Error(`Error setting default address: ${defaultError.message}`);
+          // Set as default address via API (bypasses RLS)
+          const setDefaultResponse = await fetch('/api/profile/set-default-address', {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              addressId: addressData.id,
+            }),
+          });
+
+          if (!setDefaultResponse.ok) {
+            const errorData = await setDefaultResponse.json();
+            throw new Error(`Error setting default address: ${errorData.error || 'Unknown error'}`);
           }
         }
       }
@@ -407,33 +601,47 @@ export default function CheckoutPage() {
         }
       }
       
-      // Clear cart
-      clearCart();
-      
-      // Redirect to success page
-      router.push(`/checkout/success?order_id=${order.id}`);
+      // Initiate Razorpay payment
+      await initiateRazorpayPayment(order.id, total);
     } catch (err: any) {
       console.error("Checkout error:", err);
       setError(err.message || "An error occurred during checkout. Please try again.");
-    } finally {
       setIsLoading(false);
     }
   };
 
-  // Redirect to cart if empty
+  // Redirect to cart if empty (but not during payment processing)
   useEffect(() => {
-    if (items.length === 0) {
+    if (items.length === 0 && !isProcessingPayment) {
       router.push("/checkout/cart");
     }
-  }, [items, router]);
+  }, [items, router, isProcessingPayment]);
 
-  if (items.length === 0) {
+  if (items.length === 0 && !isProcessingPayment) {
     return null;
   }
 
   return (
-    <div className="container mx-auto px-4 py-12">
-      <h1 className="text-3xl font-light mb-8">Checkout</h1>
+    <>
+      {/* Load Razorpay SDK */}
+      <Script
+        id="razorpay-checkout-js"
+        src="https://checkout.razorpay.com/v1/checkout.js"
+        strategy="lazyOnload"
+        onLoad={() => {
+          console.log('Razorpay script loaded via Script component');
+          setRazorpayLoaded(true);
+          setScriptError(false);
+        }}
+        onError={(e) => {
+          console.error('Razorpay script failed to load:', e);
+          setScriptError(true);
+          toast.error('Failed to load payment system. Please refresh the page.');
+        }}
+      />
+      
+      <div className="container mx-auto px-4 py-12">
+        <h1 className="text-3xl font-light mb-8">Checkout</h1>
       
       {error && (
         <div className="mb-6 p-4 bg-red-50 border border-red-100 text-red-500 text-sm">
@@ -639,12 +847,32 @@ export default function CheckoutPage() {
                 Your order will be processed securely. You will be redirected to our payment gateway to complete your purchase.
               </p>
               
+              {scriptError && (
+                <div className="mb-4 p-4 bg-red-50 border border-red-100 text-red-600 text-sm">
+                  <p className="font-medium mb-2">Payment system failed to load</p>
+                  <p className="mb-3">Please check your internet connection and try refreshing the page.</p>
+                  <button
+                    onClick={() => window.location.reload()}
+                    className="bg-red-600 text-white px-4 py-2 text-sm hover:bg-red-700"
+                  >
+                    Refresh Page
+                  </button>
+                </div>
+              )}
+              
               <button
                 onClick={handleCreateOrder}
-                disabled={isLoading}
-                className="w-full bg-black text-white py-3 hover:bg-white hover:text-black border border-black transition-colors duration-200"
+                disabled={isLoading || !razorpayLoaded || scriptError}
+                className="w-full bg-black text-white py-3 hover:bg-white hover:text-black border border-black transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isLoading ? "Processing..." : "Place Order"}
+                {scriptError 
+                  ? "Payment System Unavailable" 
+                  : !razorpayLoaded 
+                    ? "Loading payment system..." 
+                    : isLoading 
+                      ? "Processing..." 
+                      : "Proceed to Payment"
+                }
               </button>
             </div>
           )}
@@ -699,5 +927,6 @@ export default function CheckoutPage() {
         </div>
       </div>
     </div>
+    </>
   );
 } 

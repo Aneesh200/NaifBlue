@@ -3,9 +3,11 @@
 
 import { useEffect, useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
 import { Clock, Package, ShoppingBag, User, ArrowRight } from 'lucide-react';
+
+const supabase = createClient();
 
 interface UserProfile {
   id: string;
@@ -113,17 +115,22 @@ export default function ProfilePage() {
     if (!profile) return;
     
     try {
-      // Update user data
-      const { error: userError } = await supabase
-        .from('users')
-        .update({
+      // Update user data via API (bypasses RLS)
+      const updateResponse = await fetch('/api/profile/update', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           name: profile.name,
           phone: profile.phone,
-          updated_at: new Date()
-        })
-        .eq('id', profile.id);
+        }),
+      });
 
-      if (userError) throw userError;
+      if (!updateResponse.ok) {
+        const errorData = await updateResponse.json();
+        throw new Error(errorData.error || 'Failed to update profile');
+      }
       
       // Update or create address
       if (profile.addressLine1 && profile.city && profile.state && profile.postalCode) {

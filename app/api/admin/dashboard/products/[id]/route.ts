@@ -149,7 +149,51 @@ export async function PUT(
     }
 }
 
-// DELETE endpoint - delete product
+// PATCH endpoint - toggle product active status
+export async function PATCH(
+    request: NextRequest,
+    { params }: { params: { id: string } }
+) {
+    try {
+        const productId = params.id;
+        const body = await request.json();
+        const { is_active } = body;
+
+        if (typeof is_active !== 'boolean') {
+            return NextResponse.json(
+                { message: 'is_active must be a boolean value' },
+                { status: 400 }
+            );
+        }
+
+        // Update the product's active status
+        const updatedProduct = await prisma.product.update({
+            where: { id: productId },
+            data: { 
+                is_active,
+                // If deactivating, also mark as out of stock
+                ...(is_active === false && { in_stock: false })
+            }
+        });
+
+        return NextResponse.json({
+            message: is_active 
+                ? 'Product activated successfully' 
+                : 'Product deactivated successfully',
+            product: updatedProduct,
+            success: true
+        });
+
+    } catch (error) {
+        console.error('Error toggling product status:', error);
+        return NextResponse.json(
+            { message: 'Failed to toggle product status', error },
+            { status: 500 }
+        );
+    }
+}
+
+// DELETE endpoint - soft delete product (delist)
 export async function DELETE(
     request: NextRequest,
     { params }: { params: { id: string } }
@@ -157,6 +201,62 @@ export async function DELETE(
     try {
         const productId = params.id;
 
+        // Check if product has any orders
+        const orderItems = await prisma.orderItem.findFirst({
+            where: { product_id: productId }
+        });
+
+        // If product has orders, use soft delete (set is_active = false)
+        if (orderItems) {
+            await prisma.product.update({
+                where: { id: productId },
+                data: { 
+                    is_active: false,
+                    in_stock: false // Also mark as out of stock
+                }
+            });
+
+            return NextResponse.json({
+                message: 'Product delisted successfully (hidden from store)',
+                success: true,
+                soft_deleted: true
+            });
+        }
+
+        // Check if product sizes have any order items
+        const productSizes = await prisma.productSize.findMany({
+            where: { product_id: productId },
+            select: { id: true }
+        });
+
+        const sizeIds = productSizes.map((size: { id: string }) => size.id);
+        
+        if (sizeIds.length > 0) {
+            const orderItemsWithSizes = await prisma.orderItem.findFirst({
+                where: { 
+                    product_size_id: { in: sizeIds }
+                }
+            });
+
+            if (orderItemsWithSizes) {
+                // Soft delete if sizes have orders
+                await prisma.product.update({
+                    where: { id: productId },
+                    data: { 
+                        is_active: false,
+                        in_stock: false
+                    }
+                });
+
+                return NextResponse.json({
+                    message: 'Product delisted successfully (hidden from store)',
+                    success: true,
+                    soft_deleted: true
+                });
+            }
+        }
+
+        // If no orders exist, proceed with hard deletion
         // First delete related product sizes
         await prisma.productSize.deleteMany({
             where: { product_id: productId }
@@ -168,8 +268,9 @@ export async function DELETE(
         });
 
         return NextResponse.json({
-            message: 'Product deleted successfully',
-            success: true
+            message: 'Product permanently deleted',
+            success: true,
+            soft_deleted: false
         });
 
     } catch (error) {

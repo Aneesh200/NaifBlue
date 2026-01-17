@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "seed": "ts-node scripts/seed-db.ts"
+    "seed": "ts-node scripts/seed-db.ts",
+    "reset:users": "ts-node -r dotenv/config prisma/reset-and-seed-users.ts"
   },
   "dependencies": {
     "@headlessui/react": "^1.7.18",

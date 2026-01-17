@@ -6,9 +6,10 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const schoolId = url.searchParams.get('school');
     
-    // Fetch all products with sizes and optional school filter
+    // Fetch all active products with sizes and optional school filter
     const products = await prisma.product.findMany({
       where: {
+        is_active: true,  // Only show active (not delisted) products
         in_stock: true,
         ...(schoolId ? { school_id: schoolId } : {})
       },

@@ -58,6 +58,11 @@ const EditProductPage = () => {
     const [removedImages, setRemovedImages] = useState<string[]>([])
     const { uploadMultipleImages, deleteMultipleImages } = useImageUpload()
 
+    // Category creation modal state
+    const [showCategoryModal, setShowCategoryModal] = useState(false);
+    const [newCategoryName, setNewCategoryName] = useState('');
+    const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+
     // Mobile responsiveness
     const [activeSection, setActiveSection] = useState<string>('basic')
 
@@ -260,6 +265,56 @@ const EditProductPage = () => {
         setErrors(newErrors)
         return Object.keys(newErrors).length === 0
     }
+
+    // Handle creating a new category
+    const handleCreateCategory = async () => {
+        if (!newCategoryName.trim()) {
+            toast.error('Please enter a category name');
+            return;
+        }
+
+        setIsCreatingCategory(true);
+
+        try {
+            const response = await fetch('/api/admin/dashboard/products/categories', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ name: newCategoryName.trim() }),
+            });
+
+            const data = await response.json();
+
+            if (response.status === 409) {
+                // Category already exists
+                toast.info('Category already exists, selecting it for you');
+                setFormData({ ...formData, category_id: data.category.id });
+            } else if (!response.ok) {
+                throw new Error(data.error || 'Failed to create category');
+            } else {
+                // Successfully created
+                toast.success('Category created successfully!');
+                
+                // Add the new category to the list
+                setCategories([...categories, data.category]);
+                
+                // Select the newly created category
+                setFormData({ ...formData, category_id: data.category.id });
+                setFormChanged(true);
+            }
+
+            // Close the modal and reset
+            setShowCategoryModal(false);
+            setNewCategoryName('');
+
+        } catch (error) {
+            console.error('Error creating category:', error);
+            toast.error(error instanceof Error ? error.message : 'Failed to create category');
+        } finally {
+            setIsCreatingCategory(false);
+        }
+    };
 
     // Submit the form
     const handleSubmit = async (e: React.FormEvent) => {
@@ -536,9 +591,19 @@ const EditProductPage = () => {
 
                             <div>
                                 <label htmlFor="category_id" className="block text-sm font-medium text-gray-700 mb-1">
-                                    <div className="flex items-center">
-                                        <Tag className="w-4 h-4 mr-1 text-gray-500" />
-                                        Category
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center">
+                                            <Tag className="w-4 h-4 mr-1 text-gray-500" />
+                                            Category
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowCategoryModal(true)}
+                                            className="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center"
+                                        >
+                                            <Plus className="w-3 h-3 mr-1" />
+                                            Add New
+                                        </button>
                                     </div>
                                 </label>
                                 <select
@@ -783,6 +848,86 @@ const EditProductPage = () => {
                     </button>
                 </div>
             </form>
+
+            {/* Category Creation Modal */}
+            {showCategoryModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-semibold text-gray-900">Create New Category</h3>
+                            <button
+                                onClick={() => {
+                                    setShowCategoryModal(false);
+                                    setNewCategoryName('');
+                                }}
+                                className="text-gray-400 hover:text-gray-600"
+                                disabled={isCreatingCategory}
+                            >
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        <div className="mb-6">
+                            <label htmlFor="newCategoryName" className="block text-sm font-medium text-gray-700 mb-2">
+                                Category Name
+                            </label>
+                            <input
+                                type="text"
+                                id="newCategoryName"
+                                value={newCategoryName}
+                                onChange={(e) => setNewCategoryName(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !isCreatingCategory) {
+                                        e.preventDefault();
+                                        handleCreateCategory();
+                                    }
+                                }}
+                                placeholder="e.g. Shirts, Pants, Accessories"
+                                className="w-full px-4 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                disabled={isCreatingCategory}
+                                autoFocus
+                            />
+                            <p className="mt-2 text-xs text-gray-500">
+                                This category will be immediately available for selection.
+                            </p>
+                        </div>
+
+                        <div className="flex gap-3 justify-end">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowCategoryModal(false);
+                                    setNewCategoryName('');
+                                }}
+                                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 font-medium disabled:opacity-50"
+                                disabled={isCreatingCategory}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleCreateCategory}
+                                disabled={isCreatingCategory || !newCategoryName.trim()}
+                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isCreatingCategory ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        Creating...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Plus className="w-4 h-4 mr-2" />
+                                        Create Category
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

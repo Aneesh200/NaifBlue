@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
+
+const supabase = createClient();
 
 interface ShippingAddress {
   full_name: string;
@@ -196,18 +198,23 @@ export default function ShippingPage() {
         
         addressId = newAddress.id;
         
-        // Update user with default address
-        const { error: userError } = await supabase
-          .from('users')
-          .update({
-            default_address_id: addressId,
+        // Update user with default address via API (bypasses RLS)
+        const updateResponse = await fetch('/api/profile/update', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
             name: shippingAddress.full_name,
             phone: shippingAddress.phone,
-            updated_at: new Date(),
-          })
-          .eq('id', session.user.id);
+            default_address_id: addressId,
+          }),
+        });
 
-        if (userError) throw userError;
+        if (!updateResponse.ok) {
+          const errorData = await updateResponse.json();
+          throw new Error(`Error updating user record: ${errorData.error || 'Unknown error'}`);
+        }
       }
       
       // Create order for payment
@@ -229,8 +236,8 @@ export default function ShippingPage() {
 
       if (orderError) throw orderError;
       
-      // Redirect directly to success page
-      router.push(`/checkout/success?order_id=${order.id}`);
+      // Redirect directly to success page - use window.location for a hard redirect
+      window.location.href = `/checkout/success?order_id=${order.id}`;
     } catch (error) {
       console.error('Error processing checkout:', error);
       alert('Failed to process checkout');

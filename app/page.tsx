@@ -4,9 +4,10 @@ import { prisma } from "@/lib/prisma";
 import ProductCard from "./components/ProductCard";
 
 export default async function Home() {
-  // Get featured products
+  // Get featured products (only active/listed products)
   const featuredProducts = await prisma.product.findMany({
     where: {
+      is_active: true,
       in_stock: true,
     },
     take: 8,
@@ -18,6 +19,17 @@ export default async function Home() {
       category: true,
     },
   });
+
+  // Transform products to match ProductCard interface
+  const transformedProducts = featuredProducts.map(product => ({
+    ...product,
+    school_id: product.school_id || undefined,
+    description: product.description || "",
+    category_name: product.category?.name || "Uncategorized",
+    school_name: product.school?.name || undefined,
+    created_at: product.created_at.toISOString(),
+    updated_at: product.updated_at.toISOString(),
+  }));
 
   // Get all categories
   const categories = await prisma.category.findMany({
@@ -37,40 +49,44 @@ export default async function Home() {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="relative bg-black text-white">
-        <div className="absolute inset-0 overflow-hidden">
+      <section className="relative bg-black text-white overflow-hidden">
+        <div className="absolute inset-0">
           <Image
             src="/images/hero.png"
-            alt="School Uniforms"
+            alt="Naif Bleu Manufacturing"
             fill
             style={{ objectFit: "cover", objectPosition: "center" }}
             priority
-            className="opacity-60"
+            className="opacity-40"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-black via-black/60 to-transparent"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-black via-black/80 to-black/60"></div>
         </div>
 
         <div className="relative max-w-7xl mx-auto px-4 py-32 sm:px-6 lg:px-8">
-          <div className="max-w-xl">
-            <h1 className="text-4xl font-light tracking-tight sm:text-5xl lg:text-6xl">
-              School Uniforms Made Easy
-            </h1>
-            <p className="mt-4 text-xl font-light text-gray-200">
-              Quality uniforms for schools across the country. Find your school
-              and get the perfect fit.
-            </p>
-            <div className="mt-8 flex flex-col sm:flex-row gap-4">
+          <div className="max-w-3xl">
+            <div className="animate-fade-in-up">
+              <h1 className="text-5xl font-light tracking-tight sm:text-6xl lg:text-7xl mb-6">
+                Naif Bleu
+              </h1>
+              <p className="text-2xl font-light text-gray-200 mb-4">
+                Quality School Uniforms 
+              </p>
+              <p className="text-xl font-light text-gray-300 mb-8 max-w-2xl">
+                Premium uniforms that combine comfort, durability, and style for students across India.
+              </p>
+            </div>
+            <div className="animate-fade-in-up-delay flex flex-col sm:flex-row gap-4">
               <Link
                 href="/products"
-                className="inline-block bg-white text-black border border-transparent py-3 px-8 font-light hover:bg-gray-100 text-center"
+                className="inline-block bg-white text-black border border-transparent py-4 px-10 font-light hover:bg-gray-100 text-center transition-all duration-300"
               >
-                Shop Now
+                Shop Products
               </Link>
               <Link
-                href="/schools"
-                className="inline-block bg-transparent border border-white py-3 px-8 font-light text-white hover:bg-white hover:text-black text-center"
+                href="/contact"
+                className="inline-block bg-transparent border border-white py-4 px-10 font-light text-white hover:bg-white hover:text-black text-center transition-all duration-300"
               >
-                Find Your School
+                Contact Us
               </Link>
             </div>
           </div>
@@ -78,15 +94,16 @@ export default async function Home() {
       </section>
 
       {/* Categories Section */}
-      <section className="py-16 bg-white">
+      <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-2xl font-light text-black mb-8">Shop by Category</h2>
+          <h2 className="text-2xl font-light text-black mb-8 text-center">Shop by Category</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {categories.map((category) => (
+            {categories.map((category, index) => (
               <Link
                 key={category.id}
                 href={`/products?category=${encodeURIComponent(category.name)}`}
-                className="group relative bg-gray-50 hover:bg-gray-100 transition-colors duration-300 p-8 text-center"
+                className={`group relative bg-white hover:bg-gray-100 transition-colors duration-300 p-8 text-center border border-gray-200 hover:border-black animate-fade-in-up`}
+                style={{animationDelay: `${index * 0.1}s`}}
               >
                 <h3 className="text-lg font-light text-gray-900">{category.name}</h3>
                 <p className="text-sm text-gray-500 mt-2">Shop {category.name}</p>
@@ -99,10 +116,12 @@ export default async function Home() {
       {/* Featured Products Section */}
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-2xl font-light text-black mb-8">Featured Products</h2>
+          <h2 className="text-2xl font-light text-black mb-8 text-center">Featured Products</h2>
           <div className="grid grid-cols-1 gap-y-10 gap-x-6 sm:grid-cols-2 lg:grid-cols-4 xl:gap-x-8">
-            {featuredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
+            {transformedProducts.map((product, index) => (
+              <div key={product.id} className={`animate-fade-in-up`} style={{animationDelay: `${index * 0.1}s`}}>
+                <ProductCard product={product} />
+              </div>
             ))}
           </div>
           <div className="mt-12 text-center">
@@ -116,50 +135,6 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Schools Section */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-2xl font-light text-black mb-8">Featured Schools</h2>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-            {schools.map((school) => (
-              <Link
-                key={school.id}
-                href={`/schools/${school.id}`}
-                className="group relative bg-white border border-gray-200 hover:border-black transition-colors duration-200 p-4 flex flex-col items-center"
-              >
-                {school.logo_url ? (
-                  <div className="h-16 w-16 mb-2">
-                    <Image
-                      src={school.logo_url}
-                      alt={school.name}
-                      width={64}
-                      height={64}
-                      className="object-contain"
-                    />
-                  </div>
-                ) : (
-                  <div className="h-16 w-16 bg-gray-100 rounded-full mb-2 flex items-center justify-center">
-                    <span className="text-xl font-light text-gray-500">
-                      {school.name.charAt(0)}
-                    </span>
-                  </div>
-                )}
-                <span className="text-sm font-light text-black text-center">
-                  {school.name}
-                </span>
-              </Link>
-            ))}
-          </div>
-          <div className="mt-12 text-center">
-            <Link
-              href="/schools"
-              className="inline-flex items-center px-8 py-3 border border-black text-sm font-light text-black hover:bg-black hover:text-white transition-colors duration-200"
-            >
-              View All Schools
-            </Link>
-          </div>
-        </div>
-      </section>
 
       {/* Features/Benefits Section */}
       <section className="py-16 bg-white">
@@ -173,7 +148,7 @@ export default async function Home() {
             </p>
           </div>
           <div className="mt-12 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="bg-white border border-gray-200 p-6">
+            <div className="bg-white border border-gray-200 p-6 animate-fade-in-up hover:shadow-lg transition-all duration-300">
               <div className="w-12 h-12 bg-black rounded-full flex items-center justify-center text-white mb-4">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -198,7 +173,7 @@ export default async function Home() {
                 durability.
               </p>
             </div>
-            <div className="bg-white border border-gray-200 p-6">
+            <div className="bg-white border border-gray-200 p-6 animate-fade-in-up hover:shadow-lg transition-all duration-300" style={{animationDelay: '0.1s'}}>
               <div className="w-12 h-12 bg-black rounded-full flex items-center justify-center text-white mb-4">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -221,7 +196,7 @@ export default async function Home() {
                 time.
               </p>
             </div>
-            <div className="bg-white border border-gray-200 p-6">
+            <div className="bg-white border border-gray-200 p-6 animate-fade-in-up hover:shadow-lg transition-all duration-300" style={{animationDelay: '0.2s'}}>
               <div className="w-12 h-12 bg-black rounded-full flex items-center justify-center text-white mb-4">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -245,7 +220,7 @@ export default async function Home() {
                 Shop with confidence with our secure payment options.
               </p>
             </div>
-            <div className="bg-white border border-gray-200 p-6">
+            <div className="bg-white border border-gray-200 p-6 animate-fade-in-up hover:shadow-lg transition-all duration-300" style={{animationDelay: '0.3s'}}>
               <div className="w-12 h-12 bg-black rounded-full flex items-center justify-center text-white mb-4">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"

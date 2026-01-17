@@ -19,6 +19,7 @@ export default function AuthForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const authError = searchParams.get('error');
+  const redirectTo = searchParams.get('redirectTo');
 
   // Check for auth errors from callback
   useEffect(() => {
@@ -53,7 +54,12 @@ export default function AuthForm() {
         if (success) {
           toast.success('Signed in successfully!');
           setTimeout(() => {
-            window.location.reload();
+            // Redirect to the intended page or home
+            if (redirectTo && redirectTo.startsWith('/')) {
+              router.push(redirectTo);
+            } else {
+              window.location.reload();
+            }
           }, 500);
         }
       } else {

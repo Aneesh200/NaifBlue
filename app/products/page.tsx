@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import ProductCard from '../components/ProductCard';
 import ProductQuickView from '../components/ProductQuickView';
@@ -25,7 +25,7 @@ interface Category {
   name: string;
 }
 
-export default function ProductsPage() {
+function ProductsPageContent() {
   const searchParams = useSearchParams();
   const schoolId = searchParams.get('school');
   const categoryParam = searchParams.get('category');
@@ -159,10 +159,6 @@ export default function ProductsPage() {
     const skeletons = Array.from({ length: isMobile && mobileCols === 2 ? 6 : 4 });
     return (
       <div className="container mx-auto px-4 py-12">
-        <div className="flex flex-col items-center justify-center mb-8">
-          <div className="w-12 h-12 border-4 border-black border-t-transparent rounded-full animate-spin mb-4"></div>
-          <p className="text-gray-500 text-lg">Loading products...</p>
-        </div>
         <div className={`grid ${mobileCols === 2 ? 'grid-cols-2' : 'grid-cols-1'} sm:grid-cols-2 lg:grid-cols-3 gap-6`}>
           {skeletons.map((_, i) => (
             <div key={i} className="border border-gray-100 rounded-lg p-4 animate-pulse bg-white">
@@ -318,5 +314,30 @@ export default function ProductsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ProductsPage() {
+  return (
+    <Suspense fallback={
+      <div className="container mx-auto px-4 py-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="border border-gray-100 rounded-lg p-4 animate-pulse bg-white">
+              <div className="aspect-square bg-gray-100 rounded mb-4" />
+              <div className="h-4 bg-gray-200 rounded w-3/4 mb-2" />
+              <div className="h-3 bg-gray-100 rounded w-1/2 mb-2" />
+              <div className="h-4 bg-gray-200 rounded w-1/3 mb-4" />
+              <div className="flex gap-2 mt-2">
+                <div className="h-8 w-16 bg-gray-100 rounded" />
+                <div className="h-8 w-8 bg-gray-100 rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    }>
+      <ProductsPageContent />
+    </Suspense>
   );
 } 

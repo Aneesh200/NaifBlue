@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
@@ -17,7 +17,7 @@ import {
 } from 'lucide-react'
 import { Order } from '@/lib/types'
 
-const OrdersPage = () => {
+const OrdersPageContent = () => {
     const router = useRouter()
     const searchParams = useSearchParams()
 
@@ -303,6 +303,7 @@ const OrdersPage = () => {
 
                     {/* Apply filters button */}
                     <button
+                        type="button"
                         onClick={applyFilters}
                         className="w-full sm:w-auto bg-blue-600 text-white px-6 py-2.5 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
                     >
@@ -498,6 +499,7 @@ const OrdersPage = () => {
 
                     <div className="flex space-x-2">
                         <button
+                            type="button"
                             onClick={() => goToPage(pagination.page - 1)}
                             disabled={!pagination.hasPrevPage}
                             className={`inline-flex items-center px-4 py-2 rounded-md text-sm font-medium ${pagination.hasPrevPage
@@ -528,6 +530,7 @@ const OrdersPage = () => {
                                     return (
                                         <button
                                             key={pageNum}
+                                            type="button"
                                             onClick={() => goToPage(pageNum)}
                                             className={`w-10 h-10 flex items-center justify-center rounded-md text-sm font-medium ${pageNum === pagination.page
                                                 ? 'bg-blue-600 text-white'
@@ -543,6 +546,7 @@ const OrdersPage = () => {
                         </div>
 
                         <button
+                            type="button"
                             onClick={() => goToPage(pagination.page + 1)}
                             disabled={!pagination.hasNextPage}
                             className={`inline-flex items-center px-4 py-2 rounded-md text-sm font-medium ${pagination.hasNextPage
@@ -557,6 +561,26 @@ const OrdersPage = () => {
                 </div>
             )}
         </div>
+    )
+}
+
+const OrdersPage = () => {
+    return (
+        <Suspense fallback={
+            <div className="p-6 bg-white rounded-lg">
+                <div className="mb-8">
+                    <h1 className="text-3xl font-semibold text-gray-800 mb-2">Orders</h1>
+                    <p className="text-gray-500">Loading orders...</p>
+                </div>
+                <div className="animate-pulse space-y-4">
+                    {[...Array(5)].map((_, i) => (
+                        <div key={i} className="h-16 bg-gray-200 rounded"></div>
+                    ))}
+                </div>
+            </div>
+        }>
+            <OrdersPageContent />
+        </Suspense>
     )
 }
 

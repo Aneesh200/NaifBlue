@@ -21,8 +21,14 @@ export async function POST(request: NextRequest) {
         const folder = formData.get('folder') as string || 'products';
         const fileName = formData.get('fileName') as string || file.name;
 
+        // Sanitize filename: remove spaces, special characters, and make URL-safe
+        const sanitizedFileName = fileName
+            .replace(/\s+/g, '-')           // Replace spaces with hyphens
+            .replace(/[^a-zA-Z0-9.-]/g, '') // Remove special characters except dots and hyphens
+            .toLowerCase();                  // Convert to lowercase for consistency
+
         // Create a unique file name to avoid collisions
-        const uniqueFileName = `${Date.now()}-${fileName}`;
+        const uniqueFileName = `${Date.now()}-${sanitizedFileName}`;
         const filePath = `${folder}/${uniqueFileName}`;
 
         // Convert file to ArrayBuffer
