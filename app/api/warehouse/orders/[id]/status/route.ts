@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { createServerClient } from "@supabase/auth-helpers-nextjs";
+import { createClient } from "@/utils/supabase/server";
 import { ORDER_STATUS } from "@/lib/utils";
+import { sendOrderFulfilledEmail } from "@/lib/email";
 
 // Update order status (for warehouse staff)
 export async function PUT(
@@ -10,10 +11,7 @@ export async function PUT(
 ) {
   try {
     // Get the authenticated user
-    const supabase = createServerClient({
-      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    });
+    const supabase = await createClient();
     
     const { data: { session } } = await supabase.auth.getSession();
     
@@ -35,7 +33,7 @@ export async function PUT(
     const { id } = params;
     
     // Get request data
-    const { status, tracking_number, notes } = await request.json();
+    const { status, delivery_link, notes } = await request.json();
     
     // Validate status
     if (!Object.values(ORDER_STATUS).includes(status)) {
@@ -44,14 +42,38 @@ export async function PUT(
         { status: 400 }
       );
     }
+
+    // If status is fulfilled, delivery_link is required
+    if (status === ORDER_STATUS.FULFILLED && !delivery_link) {
+      return NextResponse.json(
+        { error: "Delivery link is required for fulfilled orders" },
+        { status: 400 }
+      );
+    }
+    
+    // Get order details before updating (for email)
+    const order = await prisma.order.findUnique({
+      where: { id },
+      include: {
+        user: true,
+        items: {
+          include: {
+            product: true,
+          },
+        },
+      },
+    });
+
+    if (!order) {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
     
     // Update order status
     const updatedOrder = await prisma.order.update({
       where: { id },
       data: {
         status,
-        tracking_number: tracking_number || undefined,
-        warehouse_notes: notes || undefined,
+        delivery_link: delivery_link || undefined,
       },
     });
     
@@ -60,10 +82,33 @@ export async function PUT(
       data: {
         order_id: id,
         status,
-        notes,
+        notes: notes || `Order marked as ${status}`,
         updated_by: user.id,
       },
     });
+
+    // Send email if status is fulfilled
+    if (status === ORDER_STATUS.FULFILLED && delivery_link) {
+      try {
+        await sendOrderFulfilledEmail({
+          orderId: order.id,
+          customerName: order.user.name || 'Customer',
+          customerEmail: order.user.email,
+          totalAmount: order.total_amount,
+          items: order.items.map(item => ({
+            name: item.product.name,
+            quantity: item.quantity,
+            price: item.price,
+          })),
+          shippingAddress: order.shipping_address,
+          deliveryLink: delivery_link,
+        });
+        console.log('Fulfillment email sent successfully');
+      } catch (emailError) {
+        console.error('Error sending fulfillment email:', emailError);
+        // Don't fail the request if email fails
+      }
+    }
     
     return NextResponse.json({ order: updatedOrder });
   } catch (error) {

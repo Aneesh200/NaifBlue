@@ -79,6 +79,7 @@ model Order {
   payment_intent_id String?
   payment_id        String?
   payment_status    String           @default("pending")
+  delivery_link     String?
   created_at        DateTime         @default(now())
   updated_at        DateTime         @updatedAt
   items             OrderItem[]

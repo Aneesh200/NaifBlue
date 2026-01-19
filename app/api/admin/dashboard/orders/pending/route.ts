@@ -6,15 +6,18 @@ const prisma = new PrismaClient();
 
 export async function GET(request: NextRequest) {
     try {
-        // Get status from query params if provided, otherwise default to 'pending'
+        // Get status from query params if provided, otherwise default to 'placed' or 'successful'
         const { searchParams } = new URL(request.url);
-        const status = searchParams.get('status') || 'pending';
+        const statusParam = searchParams.get('status');
+        
+        // If no status specified, fetch both placed and successful orders
+        const statusFilter = statusParam ? { status: statusParam } : {
+            status: { in: ['placed', 'successful'] }
+        };
 
         // Fetch orders with the specified status
         const dbOrders = await prisma.order.findMany({
-            where: {
-                status: status
-            },
+            where: statusFilter,
             include: {
                 user: {
                     select: {
@@ -64,7 +67,7 @@ export async function GET(request: NextRequest) {
                     name: item.product.name,
                     quantity: item.quantity
                 })),
-                status: order.status as "pending" | "processing" | "delivered",
+                status: order.status as "placed" | "successful" | "fulfilled",
                 address: shippingAddress
             };
         });

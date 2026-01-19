@@ -13,3 +13,9 @@ export function formatPrice(price: number): string {
     maximumFractionDigits: 2,
   }).format(price);
 }
+
+export const ORDER_STATUS = {
+  PLACED: 'placed',
+  SUCCESSFUL: 'successful',
+  FULFILLED: 'fulfilled',
+} as const;

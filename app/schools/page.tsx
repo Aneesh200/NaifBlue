@@ -38,8 +38,8 @@ export default function SchoolsPage() {
           throw new Error('Failed to fetch schools');
         }
         const data = await response.json();
-        setSchools(data);
-        setFilteredSchools(data);
+        setSchools(data.schools || []);
+        setFilteredSchools(data.schools || []);
       } catch (error) {
         console.error('Error fetching schools:', error);
       } finally {
@@ -59,7 +59,7 @@ export default function SchoolsPage() {
         throw new Error('Failed to search schools');
       }
       const data = await response.json();
-      setFilteredSchools(data);
+      setFilteredSchools(data.schools || []);
     } catch (error) {
       console.error('Error searching schools:', error);
     }

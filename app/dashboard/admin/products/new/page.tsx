@@ -68,6 +68,11 @@ const AddProductPage = () => {
     const [newCategoryName, setNewCategoryName] = useState('');
     const [isCreatingCategory, setIsCreatingCategory] = useState(false);
 
+    // School creation modal state
+    const [showSchoolModal, setShowSchoolModal] = useState(false);
+    const [newSchoolName, setNewSchoolName] = useState('');
+    const [isCreatingSchool, setIsCreatingSchool] = useState(false);
+
     // Fetch categories and schools on component mount
     useEffect(() => {
         const fetchOptions = async () => {
@@ -83,7 +88,7 @@ const AddProductPage = () => {
                 const schoolRes = await fetch('/api/schools')
                 if (schoolRes.ok) {
                     const schoolData = await schoolRes.json()
-                    setSchools(schoolData.schools || [])
+                    setSchools(Array.isArray(schoolData) ? schoolData : (schoolData.schools || []))
                 }
             } catch (error) {
                 console.error('Error fetching options:', error)
@@ -218,6 +223,55 @@ const AddProductPage = () => {
             toast.error(error instanceof Error ? error.message : 'Failed to create category');
         } finally {
             setIsCreatingCategory(false);
+        }
+    };
+
+    // Handle creating a new school
+    const handleCreateSchool = async () => {
+        if (!newSchoolName.trim()) {
+            toast.error('Please enter a school name');
+            return;
+        }
+
+        setIsCreatingSchool(true);
+
+        try {
+            const response = await fetch('/api/schools', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ name: newSchoolName.trim() }),
+            });
+
+            const data = await response.json();
+
+            if (response.status === 409) {
+                // School already exists
+                toast.info('School already exists, selecting it for you');
+                setFormData({ ...formData, school_id: data.school.id });
+            } else if (!response.ok) {
+                throw new Error(data.error || 'Failed to create school');
+            } else {
+                // Successfully created
+                toast.success('School created successfully!');
+                
+                // Add the new school to the list
+                setSchools([...schools, data.school]);
+                
+                // Select the newly created school
+                setFormData({ ...formData, school_id: data.school.id });
+            }
+
+            // Close the modal and reset
+            setShowSchoolModal(false);
+            setNewSchoolName('');
+
+        } catch (error) {
+            console.error('Error creating school:', error);
+            toast.error(error instanceof Error ? error.message : 'Failed to create school');
+        } finally {
+            setIsCreatingSchool(false);
         }
     };
 
@@ -458,9 +512,19 @@ const AddProductPage = () => {
 
                             <div>
                                 <label htmlFor="school_id" className="block text-sm font-medium text-gray-700 mb-1">
-                                    <div className="flex items-center">
-                                        <School className="w-4 h-4 mr-1 text-gray-500" />
-                                        School
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center">
+                                            <School className="w-4 h-4 mr-1 text-gray-500" />
+                                            School
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowSchoolModal(true)}
+                                            className="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center"
+                                        >
+                                            <Plus className="w-3 h-3 mr-1" />
+                                            Add New
+                                        </button>
                                     </div>
                                 </label>
                                 <select
@@ -744,6 +808,86 @@ const AddProductPage = () => {
                                     <>
                                         <Plus className="w-4 h-4 mr-2" />
                                         Create Category
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* School Creation Modal */}
+            {showSchoolModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-semibold text-gray-900">Create New School</h3>
+                            <button
+                                onClick={() => {
+                                    setShowSchoolModal(false);
+                                    setNewSchoolName('');
+                                }}
+                                className="text-gray-400 hover:text-gray-600"
+                                disabled={isCreatingSchool}
+                            >
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        <div className="mb-6">
+                            <label htmlFor="newSchoolName" className="block text-sm font-medium text-gray-700 mb-2">
+                                School Name
+                            </label>
+                            <input
+                                type="text"
+                                id="newSchoolName"
+                                value={newSchoolName}
+                                onChange={(e) => setNewSchoolName(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !isCreatingSchool) {
+                                        e.preventDefault();
+                                        handleCreateSchool();
+                                    }
+                                }}
+                                placeholder="e.g. ABC High School"
+                                className="w-full px-4 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                disabled={isCreatingSchool}
+                                autoFocus
+                            />
+                            <p className="mt-2 text-xs text-gray-500">
+                                This school will be immediately available for selection.
+                            </p>
+                        </div>
+
+                        <div className="flex gap-3 justify-end">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowSchoolModal(false);
+                                    setNewSchoolName('');
+                                }}
+                                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 font-medium disabled:opacity-50"
+                                disabled={isCreatingSchool}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleCreateSchool}
+                                disabled={isCreatingSchool || !newSchoolName.trim()}
+                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isCreatingSchool ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        Creating...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Plus className="w-4 h-4 mr-2" />
+                                        Create School
                                     </>
                                 )}
                             </button>

@@ -12,6 +12,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { toast } from 'sonner';
 import {
   PackageIcon,
@@ -33,7 +42,7 @@ interface Order {
   customerName: string;
   orderDate: string;
   items: { name: string; quantity: number }[];
-  status: "pending" | "processing" | "delivered";
+  status: "placed" | "successful" | "fulfilled";
   address: string;
 }
 
@@ -44,6 +53,10 @@ const WareHouseDashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const ordersPerPage = 9;
+  const [deliveryDialogOpen, setDeliveryDialogOpen] = useState(false);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [deliveryLink, setDeliveryLink] = useState('');
+  const [isSending, setIsSending] = useState(false);
 
   // Fetch orders on component mount
   useEffect(() => {
@@ -83,57 +96,81 @@ const WareHouseDashboard = () => {
     }
   };
 
-  // Update order status
-  const updateOrderStatus = async (orderId: string) => {
+  // Open delivery dialog
+  const handleSendForDelivery = (orderId: string) => {
+    setSelectedOrderId(orderId);
+    setDeliveryLink('');
+    setDeliveryDialogOpen(true);
+  };
+
+  // Update order status with delivery link
+  const updateOrderStatus = async () => {
+    if (!selectedOrderId) return;
+    
+    if (!deliveryLink.trim()) {
+      toast.error('Please enter a delivery link');
+      return;
+    }
+
+    setIsSending(true);
+
     try {
-      const response = await fetch('/api/admin/dashboard/orders/update-status', {
-        method: 'POST',
+      const response = await fetch(`/api/warehouse/orders/${selectedOrderId}/status`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          orderId,
-          newStatus: 'processing'
+          status: 'fulfilled',
+          delivery_link: deliveryLink.trim(),
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to update order');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update order');
+      }
 
       // Update local state
       setOrders(orders.map(order =>
-        order.id === orderId
-          ? { ...order, status: 'processing' }
+        order.id === selectedOrderId
+          ? { ...order, status: 'fulfilled' }
           : order
       ));
 
-      toast.success(`Order #${orderId} marked for delivery`);
+      toast.success(`Order #${selectedOrderId} marked as fulfilled and email sent`);
+      setDeliveryDialogOpen(false);
+      setSelectedOrderId(null);
+      setDeliveryLink('');
     } catch (error) {
       console.error("Failed to update order:", error);
-      toast.error("Failed to update order status");
+      toast.error(error instanceof Error ? error.message : "Failed to update order status");
+    } finally {
+      setIsSending(false);
     }
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'pending':
+      case 'placed':
         return (
           <Badge variant="outline" className="bg-yellow-50 text-yellow-800 border-yellow-200 flex items-center gap-1">
             <PackageIcon size={14} />
-            <span>Pending</span>
+            <span>Placed</span>
           </Badge>
         );
-      case 'processing':
+      case 'successful':
         return (
           <Badge variant="outline" className="bg-blue-50 text-blue-800 border-blue-200 flex items-center gap-1">
             <TruckIcon size={14} />
-            <span>Processing</span>
+            <span>Successful</span>
           </Badge>
         );
-      case 'delivered':
+      case 'fulfilled':
         return (
           <Badge variant="outline" className="bg-green-50 text-green-800 border-green-200 flex items-center gap-1">
             <CheckCircleIcon size={14} />
-            <span>Delivered</span>
+            <span>Fulfilled</span>
           </Badge>
         );
       default:
@@ -142,7 +179,7 @@ const WareHouseDashboard = () => {
   };
 
   const getStatusCounts = () => {
-    const counts = { pending: 0, processing: 0, delivered: 0 };
+    const counts = { placed: 0, successful: 0, fulfilled: 0 };
     orders.forEach(order => {
       if (counts[order.status as keyof typeof counts] !== undefined) {
         counts[order.status as keyof typeof counts]++;
@@ -178,10 +215,10 @@ const WareHouseDashboard = () => {
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200 shadow-sm">
           <CardHeader className="pb-2">
-            <CardDescription className="text-yellow-800">Pending Orders</CardDescription>
+            <CardDescription className="text-yellow-800">Placed Orders</CardDescription>
             <CardTitle className="text-3xl flex items-center gap-2">
               <PackageIcon className="text-yellow-600" />
-              {statusCounts.pending}
+              {statusCounts.placed}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -191,27 +228,27 @@ const WareHouseDashboard = () => {
 
         <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 shadow-sm">
           <CardHeader className="pb-2">
-            <CardDescription className="text-blue-800">Processing Orders</CardDescription>
+            <CardDescription className="text-blue-800">Successful Orders</CardDescription>
             <CardTitle className="text-3xl flex items-center gap-2">
               <TruckIcon className="text-blue-600" />
-              {statusCounts.processing}
+              {statusCounts.successful}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-blue-800/70">Out for delivery</p>
+            <p className="text-sm text-blue-800/70">Payment successful</p>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200 shadow-sm">
           <CardHeader className="pb-2">
-            <CardDescription className="text-green-800">Completed Orders</CardDescription>
+            <CardDescription className="text-green-800">Fulfilled Orders</CardDescription>
             <CardTitle className="text-3xl flex items-center gap-2">
               <CheckCircleIcon className="text-green-600" />
-              {statusCounts.delivered}
+              {statusCounts.fulfilled}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-green-800/70">Successfully delivered</p>
+            <p className="text-sm text-green-800/70">Sent for delivery</p>
           </CardContent>
         </Card>
       </div>
@@ -282,8 +319,8 @@ const WareHouseDashboard = () => {
                     key={order.id}
                     className="overflow-hidden border-l-4 hover:-translate-y-1 transition-all duration-200 shadow-sm hover:shadow-md flex flex-col justify-between"
                     style={{
-                      borderLeftColor: order.status === 'pending' ? '#EAB308' :
-                        order.status === 'processing' ? '#3B82F6' : '#22C55E'
+                      borderLeftColor: order.status === 'placed' ? '#EAB308' :
+                        order.status === 'successful' ? '#3B82F6' : '#22C55E'
                     }}
                   >
                     <CardHeader className="bg-gradient-to-r from-slate-50 to-white p-4 pb-3">
@@ -345,18 +382,18 @@ const WareHouseDashboard = () => {
                     </CardContent>
 
                     <CardFooter className="p-4 flex justify-end bg-gradient-to-r from-slate-50 to-white">
-                      {order.status === 'pending' ? (
+                      {order.status === 'placed' || order.status === 'successful' ? (
                         <Button
                           className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white border-none transition-all group"
-                          onClick={() => updateOrderStatus(order.id)}
+                          onClick={() => handleSendForDelivery(order.id)}
                         >
                           <TruckIcon size={16} className="mr-1.5 group-hover:animate-bounce" />
                           Send for Delivery
                         </Button>
                       ) : (
                         <Button variant="outline" disabled className="opacity-50">
-                          <TruckIcon size={16} className="mr-1.5" />
-                          In Process
+                          <CheckCircleIcon size={16} className="mr-1.5" />
+                          Fulfilled
                         </Button>
                       )}
                     </CardFooter>
@@ -418,6 +455,55 @@ const WareHouseDashboard = () => {
           <p className="text-sm text-slate-500">Last updated: {new Date().toLocaleTimeString()}</p>
         </CardFooter>
       </Card>
+
+      {/* Delivery Link Dialog */}
+      <Dialog open={deliveryDialogOpen} onOpenChange={setDeliveryDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Send Order for Delivery</DialogTitle>
+            <DialogDescription>
+              Enter the delivery tracking link for order #{selectedOrderId}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="delivery-link">Delivery Tracking Link</Label>
+              <Input
+                id="delivery-link"
+                placeholder="https://tracking.example.com/..."
+                value={deliveryLink}
+                onChange={(e) => setDeliveryLink(e.target.value)}
+              />
+              <p className="text-sm text-gray-500">
+                This link will be sent to the customer via email
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDeliveryDialogOpen(false);
+                setDeliveryLink('');
+                setSelectedOrderId(null);
+              }}
+              disabled={isSending}
+            >
+              Cancel
+            </Button>
+            <Button onClick={updateOrderStatus} disabled={isSending}>
+              {isSending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                'Send for Delivery'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

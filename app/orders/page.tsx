@@ -66,12 +66,10 @@ export default function OrdersPage() {
   // Status badges styling
   const getStatusStyle = (status: string) => {
     const styles = {
-      pending: 'bg-gray-50 text-gray-500 border border-gray-100',
-      processing: 'bg-gray-50 text-gray-500 border border-gray-100',
-      shipped: 'bg-gray-50 text-gray-500 border border-gray-100',
-      delivered: 'bg-gray-50 text-gray-500 border border-gray-100',
-      completed: 'bg-gray-50 text-gray-500 border border-gray-100',
-      cancelled: 'bg-gray-50 text-gray-500 border border-gray-100',
+      placed: 'bg-yellow-50 text-yellow-800 border border-yellow-200',
+      successful: 'bg-blue-50 text-blue-800 border border-blue-200',
+      fulfilled: 'bg-green-50 text-green-800 border border-green-200',
+      cancelled: 'bg-red-50 text-red-800 border border-red-200',
     };
     
     return styles[status.toLowerCase() as keyof typeof styles] || 'bg-gray-50 text-gray-500 border border-gray-100';

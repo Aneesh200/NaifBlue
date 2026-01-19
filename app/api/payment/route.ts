@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import Razorpay from "razorpay";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/utils/supabase/server";
+import { sendOrderPlacedEmail } from "@/lib/email";
 
 // Initialize Razorpay instance
 const razorpay = new Razorpay({
@@ -97,12 +98,25 @@ export async function PUT(request: Request) {
       .digest('hex');
 
     if (generated_signature === razorpay_signature) {
+      // Get order details before updating (for email)
+      const order = await prisma.order.findUnique({
+        where: { id: order_id },
+        include: {
+          user: true,
+          items: {
+            include: {
+              product: true,
+            },
+          },
+        },
+      });
+
       // Payment is successful, update order status
       await prisma.order.update({
         where: { id: order_id },
         data: { 
           payment_status: "completed",
-          status: "processing",
+          status: "successful",
           updated_at: new Date(),
         },
       });
@@ -111,11 +125,33 @@ export async function PUT(request: Request) {
       await prisma.orderStatusLog.create({
         data: {
           order_id,
-          status: "processing",
+          status: "successful",
           notes: `Payment received successfully. Razorpay Payment ID: ${razorpay_payment_id}`,
           updated_by: "system",
         },
       });
+
+      // Send order placed email
+      if (order) {
+        try {
+          await sendOrderPlacedEmail({
+            orderId: order.id,
+            customerName: order.user.name || 'Customer',
+            customerEmail: order.user.email,
+            totalAmount: order.total_amount,
+            items: order.items.map(item => ({
+              name: item.product.name,
+              quantity: item.quantity,
+              price: item.price,
+            })),
+            shippingAddress: order.shipping_address,
+          });
+          console.log('Order placed email sent successfully');
+        } catch (emailError) {
+          console.error('Error sending order placed email:', emailError);
+          // Don't fail the request if email fails
+        }
+      }
 
       return NextResponse.json({ 
         success: true,
@@ -135,7 +171,7 @@ export async function PUT(request: Request) {
       await prisma.orderStatusLog.create({
         data: {
           order_id,
-          status: "pending",
+          status: "placed",
           notes: "Payment verification failed: Invalid signature",
           updated_by: "system",
         },
@@ -180,7 +216,7 @@ export async function PATCH(request: Request) {
     await prisma.orderStatusLog.create({
       data: {
         order_id,
-        status: "pending",
+        status: "placed",
         notes: `Payment failed: ${error_description || "Unknown error"}`,
         updated_by: "system",
       },

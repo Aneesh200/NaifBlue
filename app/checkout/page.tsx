@@ -548,7 +548,7 @@ export default function CheckoutPage() {
             postal_code: formData.postal_code,
             country: formData.country
           },
-          status: 'pending',
+          status: 'placed',
           total_amount: total,
           created_at: currentDate,
           updated_at: currentDate

@@ -226,7 +226,7 @@ export default function ShippingPage() {
           id: orderId,
           user_id: session.user.id,
           shipping_address: shippingAddress, // Store as JSON for order record
-          status: 'pending',
+          status: 'placed',
           total_amount: cartSummary.total,
           created_at: currentDate,
           updated_at: currentDate
