@@ -33,7 +33,8 @@ import {
   UserIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  ListIcon
+  ListIcon,
+  Loader2
 } from "lucide-react";
 
 // Order type definition
