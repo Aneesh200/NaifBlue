@@ -15,7 +15,8 @@ const nextConfig: NextConfig = {
       'placehold.co', 
       'images.unsplash.com', 
       'yaxrnjazcknzqgnpwfuw.supabase.co',  // Current Supabase project
-      'gdtfkvmdsmxvgoljgsia.supabase.co'   // Old Supabase project (for existing images)
+      'gdtfkvmdsmxvgoljgsia.supabase.co',
+      'https://nyuyugtgygmpkjhxkmsv.supabase.co'// Old Supabase project (for existing images)
     ],
   },
   // Allow external scripts for payment gateways
